@@ -1,0 +1,41 @@
+{
+ "name": "replay_merge_boundary",
+ "params": {},
+ "events": [
+  [
+   0,
+   2000,
+   -34.0,
+   0.9,
+   -70.0
+  ],
+  [
+   32000,
+   34000,
+   -33.0,
+   0.9,
+   -70.0
+  ],
+  [
+   64000,
+   66000,
+   -35.0,
+   0.9,
+   -70.0
+  ]
+ ],
+ "expect": {
+  "episodes": [
+   {
+    "startMs": 0,
+    "endMs": 66000,
+    "eventCount": 3,
+    "snoreMs": 6000,
+    "peakDbfs": -33.0,
+    "nfAtPeak": -70.0,
+    "bucket": "moderate"
+   }
+  ],
+  "discardedEpisodes": 0
+ }
+}
