@@ -9,3 +9,5 @@ __pycache__/
 /android/build/
 /android/**/build/
 local.properties
+build/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/

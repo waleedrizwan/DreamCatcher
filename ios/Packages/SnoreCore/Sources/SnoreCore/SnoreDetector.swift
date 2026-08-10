@@ -103,6 +103,17 @@ public struct ClosedEpisode: Equatable, Sendable {
     public var snoreMs: Int64
     public var peak: SnoreEvent
     public var bucket: IntensityBucket
+
+    public init(id: Int, startMs: Int64, endMs: Int64, events: [SnoreEvent],
+                snoreMs: Int64, peak: SnoreEvent, bucket: IntensityBucket) {
+        self.id = id
+        self.startMs = startMs
+        self.endMs = endMs
+        self.events = events
+        self.snoreMs = snoreMs
+        self.peak = peak
+        self.bucket = bucket
+    }
 }
 
 /// Snapshot passed with `episodeConfirmed` so the service can start clip capture.
@@ -111,6 +122,13 @@ public struct ConfirmedEpisode: Equatable, Sendable {
     public var startMs: Int64
     public var lastEventEndMs: Int64
     public var eventCount: Int
+
+    public init(id: Int, startMs: Int64, lastEventEndMs: Int64, eventCount: Int) {
+        self.id = id
+        self.startMs = startMs
+        self.lastEventEndMs = lastEventEndMs
+        self.eventCount = eventCount
+    }
 }
 
 public enum DetectorOutput: Equatable, Sendable {

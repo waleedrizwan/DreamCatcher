@@ -46,7 +46,7 @@ public struct SessionMetrics: Equatable, Sendable {
             noiseFloorDbfs: median(floors))
     }
 
-    static func median(_ xs: [Double]) -> Double? {
+    public static func median(_ xs: [Double]) -> Double? {
         guard !xs.isEmpty else { return nil }
         let s = xs.sorted()
         let mid = s.count / 2

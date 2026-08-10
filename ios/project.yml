@@ -1,0 +1,47 @@
+name: SnoreLab
+options:
+  bundleIdPrefix: com.snorelaboratory
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  SnoreCore:
+    path: Packages/SnoreCore
+  SnoreAudio:
+    path: Packages/SnoreAudio
+  SnoreStorage:
+    path: Packages/SnoreStorage
+
+targets:
+  SnoreLab:
+    type: application
+    platform: iOS
+    sources:
+      - SnoreLab
+    dependencies:
+      - package: SnoreCore
+      - package: SnoreAudio
+      - package: SnoreStorage
+    info:
+      path: SnoreLab/Info.plist
+      properties:
+        CFBundleDisplayName: Snore Laboratory
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        # The standard, App-Review-accepted mechanism for overnight recorder
+        # apps (design-ios §2.2): with running audio input, the app is not
+        # suspended when the screen locks.
+        UIBackgroundModes:
+          - audio
+        NSMicrophoneUsageDescription: >-
+          Snore Laboratory listens overnight to detect snoring. Audio is
+          analyzed on your phone; only short snore clips are saved, and audio
+          never leaves your device.
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
