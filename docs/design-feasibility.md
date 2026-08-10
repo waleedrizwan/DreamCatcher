@@ -1,0 +1,84 @@
+# Feasibility Review — snore-labratory (three-document review)
+
+Verification performed via web search (sources at end). Verified facts up front: the built-in SoundAnalysis `.version1` classifier and its `snoring` label are real; Apple Dev Forums thread 811582 is real — and it is not alone (iOS 18 threads 757715/765376 report the same failure class); Android 15's 6-hour FGS timeout applies to `dataSync`/`mediaProcessing` only, `microphone` is exempt; the Android 14+ "cannot start a mic FGS from the background" rule is real (and Android 16 removes even the exemptions); `com.google.mediapipe:tasks-audio` exists on Maven (0.10.x, actively maintained) and YAMNet has AudioSet "Snoring"; Play requires an FGS-microphone declaration with a demo video. With that established, here are the real problems.
+
+---
+
+## Blockers
+
+**B1. iOS plan bets on background SoundAnalysis, and the failure is confirmed and systemic — the fallback must become the primary path.**
+The iOS doc frames thread 811582 as "a single unanswered thread, may be configuration-specific." It isn't. There are multiple independent reports across iOS 17.x and iOS 18: the built-in classifier fails with `SNErrorCode.operationFailed` the moment the screen locks, while mic capture continues, and iOS 18 surfaces the root cause — "Insufficient Permission (to submit GPU work from background)." iOS forbids background GPU work; the built-in classifier evidently dispatches to GPU. This is an OS policy, not a bug likely to be fixed, and it kills the app's core loop (phone locked all night).
+**Fix:** Invert the architecture. Primary path = bundled Core ML sound classifier (YAMNet-class model) driven directly via `MLModel.prediction` with `computeUnits = .cpuOnly` (CPU is background-safe; test `.cpuAndNeuralEngine` too — ANE is generally background-tolerant, but validate on-device). Keep Spike 0, but reframe it: it validates the custom-model background path, with built-in SoundAnalysis demoted to an opportunistic experiment. Bonus: running the same YAMNet-family model on both platforms collapses the spec's per-platform threshold split. "Fallback A" (screen-on all night) should be explicitly rejected as plan-of-record: OLED wear, ~6–10%/hr extra drain, and it silently breaks the "screen locks" requirement in the brief.
+
+**B2. The three documents specify three incompatible detectors — headline metrics will not match anything.**
+Window/hop: 1.5 s / 0.75 s (iOS) vs 0.975 s / ~0.49 s (Android) vs 1.0 s / 0.5 s (spec). Episode start: 2 consecutive windows (iOS) vs 3-of-5 windows (Android) vs 3 events + 30 s span (spec). Episode end: 20 s (iOS) vs 10 s (Android) vs 30 s merge gap (spec). Minimum bout: 10 s (iOS) vs 5 s (Android) vs 30 s span (spec). Episode count and snore time — the two numbers on the morning report — will differ by integer factors depending on which doc an engineer reads.
+**Fix:** Declare the shared spec normative; strip all detection parameters and state-machine text from both platform docs, leaving only the adapter layers. Then make one deliberate product decision the spec currently hides: `MIN_EPISODE_SPAN_MS = 30000` discards every bout under 30 s entirely (the iOS doc kept 10 s bouts). Aggressive filtering is defensible, but decide it consciously and encode it in the golden fixtures.
+
+**B3. Three different SQLite schemas; the iOS one violates the spec directly.**
+iOS: `session/episode/minuteAggregate`, REAL epoch-seconds, intensity *counts*, crash recovery via last-written minute. Android: `sessions/episodes/gaps`, INTEGER ms, no per-minute table. Spec: `session/episode/event/clip`, INTEGER ms, intensity *durations*, heartbeat recovery, and an explicit rule that timeline bins are "computed on demand, never stored" — which forbids iOS's `minuteAggregate`. The spec's `event` table (the recovery and recompute backbone) appears in neither platform doc.
+**Fix:** `spec/schema/v1.sql` is the only DDL; GRDB executes it verbatim; Room entities are written to match it (validate with Room's exported schema against the file in CI). iOS adopts heartbeat + event-replay recovery and drops `minuteAggregate`. Adopt spec-only concepts (`night_of`, <5-min session discard, `detector_params_json`) into both platform plans.
+
+**B4. Spec bug: sample-count timestamps drift from wall clock across interruptions.**
+`tMs = sessionStartMs + samplesConsumed/16` is correct only if samples flow continuously. On iOS, an interruption stops the engine — no samples are consumed — so after a 10-minute 3 a.m. phone call every subsequent event, episode, timeline bar, and clip filename is placed 10 minutes early. (Android's silenced-mic case feeds zeros, so it accidentally stays aligned — another cross-platform divergence.)
+**Fix:** Re-anchor at every resume: `tMs = anchorWallClockMs + samplesSinceAnchor/16`, new anchor taken at each engine (re)start; spec already mandates `flush()` at interruption so the detector needs nothing else. Add a golden fixture containing a gap.
+
+## Major
+
+**M1. Spec's clip mechanism has a ring-buffer coverage bug.**
+`NewPeakEvent` is only emitted for CONFIRMED episodes; the pending episode's peak is announced at confirmation. Confirmation requires a 30 s span, so the peak event (often the first, loudest event) can already be ≥30 s in the past — exactly at the edge of the 30 s ring buffer. Pre-roll and often the event itself are gone; the "loudest event" clip is silence or truncated.
+**Fix:** Snapshot a candidate PCM range on every valid event that becomes the provisional peak (PENDING included), discard on `EpisodeDiscarded`; or grow the ring to 60 s (~1.9 MB, trivial). Separately, reconcile the three contradictory clip policies (12 s/30 clips/90 days spec vs 30 s/50/30 days iOS vs 20 s/40/30 nights Android; ring 30/20/10 s) — pick the spec's, update both platform docs.
+
+**M2. iOS interruption → suspension is a real liveness hole the retry design can't paper over.**
+Once the engine stops on interruption, the app loses its running-audio background exemption and is suspendable within seconds; the doc's 1/5/15/60 s backoff timers and 60 s watchdog do not fire in a suspended process, and `.ended`/`.shouldResume` delivery to background apps is unreliable. A missed call can silently end the night.
+**Fix:** Attempt synchronous reactivation inside the interruption handler; wrap the retry window in `beginBackgroundTask` (~30 s of guaranteed runtime); beyond that, accept truncation as a platform limitation — heartbeat + recovery already yields an honest partial report. State this explicitly in the spec's lifecycle section and in UX copy ("recording ended early at HH:MM"), and never market guaranteed all-night coverage.
+
+**M3. The loudness gate's battery story is oversold, and iOS gets zero gate benefit as designed.**
+YAMNet inference is ~5–15 ms per ~0.5 s hop — a 1–3% duty cycle. The dominant overnight drain is mic capture, per-buffer CPU wakeups, and the wake lock, none of which the gate touches; "near-zero inference in a quiet room" saves single-digit percent of the pipeline's power, not the night. On iOS the spec itself concedes everything streams into `SNAudioStreamAnalyzer` (you can't skip windows without corrupting its timeline), so the iOS doc's "skip windows < −55 dBFS" is only implementable as result-veto, not inference-skipping.
+**Fix:** Reframe the gate as a false-positive filter. Budget battery assuming continuous inference: 2–5%/hr is the realistic envelope (both docs' estimates are plausible but inconsistent — 3–6 vs 2–4%/hr; set one measured target and verify with Instruments Energy Log / Batterystats in field testing). The "charge while tracking" product stance carries the day regardless. If B1's custom-model route lands on iOS, inference-skipping becomes symmetric with Android — a genuine (small) win.
+
+**M4. Gate algorithms and the speech veto contradict across docs, and the veto can't exist in the shared detector.**
+Fixed −55 dBFS (iOS) vs adaptive P10-floor +6 dB (Android) vs min-follower +12 dB clamped [−56, −38] (spec). Worse: both platform docs rely on a competing-label veto (speech/TV beats snoring), but the spec's `ClassifierFrame` has no speech field — so the app's main defense against the #1 false-positive source (partner talking, TV) lives outside the shared, fixture-tested state machine.
+**Fix:** Adopt the spec's min-follower gate everywhere; add `speechConf` (or `topCompetingConf`) to `ClassifierFrame`; move the veto into the shared detector with a shared threshold; add TV/speech golden fixtures.
+
+**M5. Intensity buckets: three definitions, two of them wrong.**
+iOS absolute (−38/−28 dBFS), Android absolute (−38/−24 — note the boundary also differs), spec relative (+25/+40 dB above noise floor). Absolute dBFS buckets are meaningless across devices, mic gain, and nightstand distance; relative-to-floor is the defensible design.
+**Fix:** Spec §2.2 wins everywhere. Keep the AGC-off capture settings (iOS `.measurement`, Android `VOICE_RECOGNITION`/`UNPROCESSED`) as the prerequisite that makes relative dB stable — that part both docs got right.
+
+**M6. Android OEM-kill handling is directionally right but incomplete, and `START_STICKY` is a trap.**
+Verified: mic FGS is exempt from the Android 15 timeout, but Samsung "sleeping apps"/Xiaomi killers ignore FGS status — and a killed mic FGS cannot restart from the background (Android 14+, no exemptions at all on Android 16). So `START_STICKY` buys nothing except a restart that immediately hits `ForegroundServiceStartNotAllowedException`/`SecurityException` on a device that just killed you.
+**Fix:** Return `START_NOT_STICKY`; rely on heartbeat + partial-report recovery (already designed). Add a session-start checklist: detect problem OEMs and unplugged state, and upgrade "plug in your phone" from a nudge to a strong recommendation — a charging device never enters Doze, which removes most of the risk. Log end-reasons per session to measure real-world survival by OEM.
+
+**M7. Backup policy contradiction breaks the privacy promise.**
+iOS doc: stats DB backs up to iCloud ("stats are small and back up"). Spec: exclude DB and clips — "the promise is never leaves this device." Android: excludes both, accepting total data loss on phone upgrade. One of these is a false privacy claim or a bad upgrade experience, depending on which ships.
+**Fix:** Decide once, identically: recommended — exclude clips (audio never leaves the device, the claim users care about), allow the metrics DB into OS backups, and word the privacy copy as "audio never leaves your phone." If instead everything is excluded, add an upgrade-path warning and prioritize post-MVP export.
+
+**M8. Spec's iOS adapter as written will crash, and its frame alignment is hand-waved.**
+"`AVAudioEngine` tap at 16 kHz mono" — input-node taps must use the hardware format (typically 48 kHz); requesting 16 kHz in `installTap` throws. The iOS doc gets this right (tap native, `AVAudioConverter` to 16 kHz); the spec must match. Also, mapping SoundAnalysis's self-timed, `windowDurationConstraint`-clamped results onto exact 500 ms sample-anchored frames needs a defined association rule (RMS always from the normalization layer's own window; classifier confidence attached to nearest frame). If B1's custom-model route is adopted, the adapter frames model input itself and this entire seam disappears — one more argument for B1.
+
+## Minor
+
+- **m1.** Android doc `CONF_THRESHOLD` 0.30 vs spec 0.35; the sensitivity setting (Low/Med/High mapping) exists only in platform docs — move the mapping into the spec so both platforms shift the same constants, snapshotted in `detector_params_json`.
+- **m2.** Snore Score (0–100) exists only in the spec; neither platform's report/UI/schema includes it (iOS schema has no score column). Folded into B3, but both UI plans need the score card and band colors.
+- **m3.** Spec's "verifiable — no networking entitlement usage" is wrong on iOS (there is no client-network entitlement on iOS; that's macOS sandbox). Reword: no networking code, no ATS exceptions, Privacy Nutrition Label "Data Not Collected."
+- **m4.** Both platform docs promise rendering interruption/mic-silenced segments ("gray gaps," "mic unavailable 02:13–02:19"), but the spec schema has only `interruption_count` — no interval table. Add `interruption(session_id, start_ms, end_ms, reason)` to `spec/schema/v1.sql` plus a timeline rendering rule.
+- **m5.** Report auto-present timing differs (on Stop vs next app open). Align: both.
+- **m6.** Pin the exact `tasks-audio` version (never `latest.release`); MediaPipe audio tasks get less attention than vision — the `SnoreClassifier` interface escape hatch to raw LiteRT (already in the Android doc) is the right insurance.
+- **m7.** No doc handles disk-full/DB-write failure mid-night (iOS has a pre-flight check only). Define degrade behavior: stop clip writing first, keep metrics with in-memory retry, flag degraded state on the report.
+- **m8.** iOS Fallback B mentions Create ML/converted-YAMNet casually; sourcing/licensing/eval of that model (AudioSet-trained weights, test-set F1 vs the built-in classifier) is an unscoped work item — make it an explicit task with acceptance criteria, since B1 promotes it to the critical path.
+
+---
+
+## Top 3 things that will make or break v1
+
+1. **Overnight survival rate.** Everything else is irrelevant if the session dies at 2 a.m. This is B1 (iOS background inference via CPU-only Core ML), M2 (iOS interruption suspension), and M6 (OEM killers) combined. Define the metric now — % of started sessions producing a full-night report — instrument it via heartbeat/end-reason, and gate launch on >99% on charging devices across an iPhone + Pixel + Samsung + Xiaomi test matrix.
+2. **False-positive discipline on real bedroom audio.** Partner snoring/talking, TV, fans, HVAC, pets. One shared detector behind golden fixtures (B2/M4), a debug build that logs every window's scores to CSV, and a corpus of real recorded nights to tune thresholds before beta. Detection quality is the product; a night report claiming 90 minutes of snoring from a fan is a deleted app.
+3. **One normative spec with truthful data.** Resolve B3/B4/M1 so both platforms compute identical, recomputable numbers from an `event` log that survives crashes, shows interruptions honestly, and keeps timestamps correct across gaps. The debug assertion "rollups == recompute from events" and the shared fixture suite are the enforcement mechanism — build them before either UI.
+
+Sources: [Apple Dev Forums 811582 — SoundAnalysis fails in background](https://developer.apple.com/forums/thread/811582), [Apple Dev Forums 757715 — iOS 18 SoundAnalysis error when locked](https://developer.apple.com/forums/thread/757715), [Apple Dev Forums 765376 — iOS 18 background permissions error](https://developer.apple.com/forums/thread/765376), [SNClassifySoundRequest](https://developer.apple.com/documentation/soundanalysis/snclassifysoundrequest), [WWDC21 — built-in sound classification](https://developer.apple.com/videos/play/wwdc2021/10036/), [SoundML label list incl. snoring](https://github.com/chrisladd/SoundML), [Android FGS timeouts (dataSync/mediaProcessing only)](https://developer.android.com/develop/background-work/services/fgs/timeout), [Android FGS service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [FGS background-start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start), [Android 14 FGS types required](https://developer.android.com/about/versions/14/changes/fgs-types-required), [Android FGS changes (incl. Android 16)](https://developer.android.com/develop/background-work/services/fgs/changes), [MediaPipe audio classifier for Android](https://ai.google.dev/edge/mediapipe/solutions/audio/audio_classifier/android), [MediaPipe releases](https://github.com/google-ai-edge/mediapipe/releases), [Play Console — FGS declaration & video requirement](https://support.google.com/googleplay/android-developer/answer/13392821?hl=en), [WWDC22 — Optimize Core ML usage (compute units)](https://developer.apple.com/videos/play/wwdc2022/10027/).
+
+### Critical Files for Implementation
+- /Users/waleedrizwan/code/snore-labratory/spec/SHARED_BEHAVIOR_SPEC.md (must be revised per B2–B4, M1, M4, m4 and declared normative)
+- /Users/waleedrizwan/code/snore-labratory/spec/schema/v1.sql (single DDL both platforms consume verbatim)
+- /Users/waleedrizwan/code/snore-labratory/spec/fixtures/detector/ (golden fixtures — add interruption-gap, speech-veto, and short-bout cases)
+- /Users/waleedrizwan/code/snore-labratory/ios/SnoreLab/Detection/CoreMLSnoreClassifier.swift (promoted from fallback to primary iOS classifier)
+- /Users/waleedrizwan/code/snore-labratory/android/app/src/main/kotlin/session/SnoreSessionService.kt (FGS lifecycle, wake lock, heartbeat, START_NOT_STICKY)

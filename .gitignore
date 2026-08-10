@@ -1,0 +1,11 @@
+.DS_Store
+*.xcuserstate
+xcuserdata/
+.build/
+DerivedData/
+*.pyc
+__pycache__/
+/android/.gradle/
+/android/build/
+/android/**/build/
+local.properties
