@@ -27,11 +27,14 @@ struct SettingsView: View {
                         confirmingDelete = true
                     }
                 }
+                #if DEBUG
+                // Internal test surface: never ships in a release build.
                 Section("Developer") {
                     NavigationLink("Spike 0 — background classifier soak test") {
                         SpikeView()
                     }
                 }
+                #endif
                 Section("About") {
                     Text(medicalDisclaimer)
                         .font(.caption)
@@ -57,8 +60,10 @@ struct SettingsView: View {
     }
 }
 
+#if DEBUG
 /// Spike 0 UI (plan M0): run on a physical device, lock the screen for an
-/// hour, come back and read the verdict lines.
+/// hour, come back and read the verdict lines. Debug-only — App Review must
+/// never see an internal soak-test screen.
 struct SpikeView: View {
     @Environment(AppDependencies.self) private var deps
     @State private var runner: SpikeRunner?
@@ -107,3 +112,4 @@ struct SpikeView: View {
         running = await runner.isRunning
     }
 }
+#endif

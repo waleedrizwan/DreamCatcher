@@ -38,7 +38,7 @@ final class AppDependencies {
         let db = try! AppDatabase.open(directory: appSupport)
         let repository = SessionRepository(db)
         // Crash recovery on every launch (spec §3.1).
-        try? repository.recoverOrphanSessions()
+        _ = try? repository.recoverOrphanSessions()
 
         let clipsRoot = appSupport.appendingPathComponent("clips")
         try? FileManager.default.createDirectory(
@@ -50,14 +50,55 @@ final class AppDependencies {
         values.isExcludedFromBackup = true
         try? clipsURL.setResourceValues(values)
 
+        // Overnight writes happen while the device is locked, so nothing may
+        // carry NSFileProtectionComplete (design-ios §4).
+        applyUnlockedOnceProtection(under: appSupport)
+
+        // Retention + orphan GC (spec §4): expire 90-day-old clips, then
+        // delete any file the DB no longer references (crashed nights,
+        // discarded sessions, rows removed by "delete all data").
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+        for expired in (try? repository.expireClips(nowMs: nowMs)) ?? [] {
+            try? FileManager.default.removeItem(
+                at: appSupport.appendingPathComponent(expired))
+        }
+        if let referenced = try? repository.allClipFileNames(),
+           let files = FileManager.default.enumerator(
+               at: clipsRoot, includingPropertiesForKeys: [.isRegularFileKey]) {
+            for case let url as URL in files
+            where url.pathExtension == "m4a" {
+                let name = "clips/\(url.deletingLastPathComponent().lastPathComponent)/\(url.lastPathComponent)"
+                if !referenced.contains(name) {
+                    try? FileManager.default.removeItem(at: url)
+                }
+            }
+        }
+
         let docs = FileManager.default.urls(
             for: .documentDirectory, in: .userDomainMask)[0]
         return AppDependencies(repository: repository, clipsRoot: clipsRoot,
                                spikeLogDir: docs)
     }
+
+    /// Downgrade file protection to `.completeUntilFirstUserAuthentication`
+    /// for the DB, its WAL/SHM siblings, and the clips tree. iOS grants this
+    /// class by default, but it is the difference between a report and a
+    /// corrupt night if that ever changes — so it is asserted, not assumed.
+    private static func applyUnlockedOnceProtection(under root: URL) {
+        let attrs: [FileAttributeKey: Any] =
+            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]
+        try? FileManager.default.setAttributes(attrs, ofItemAtPath: root.path)
+        guard let files = FileManager.default.enumerator(
+            at: root, includingPropertiesForKeys: nil) else { return }
+        for case let url as URL in files {
+            try? FileManager.default.setAttributes(attrs, ofItemAtPath: url.path)
+        }
+    }
 }
 
 struct RootView: View {
+    @AppStorage("hasOnboarded") private var hasOnboarded = false
+
     var body: some View {
         TabView {
             HomeView()
@@ -66,6 +107,9 @@ struct RootView: View {
                 .tabItem { Label("History", systemImage: "calendar") }
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
+        }
+        .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
+            OnboardingView { hasOnboarded = true }
         }
     }
 }

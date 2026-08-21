@@ -17,6 +17,10 @@ public actor RecordingSessionActor {
         public var eventsSoFar: Int
         public var episodesSoFar: Int
         public var lastClassifierError: String?
+        /// Low-disk degrade (spec §3.1): clips paused, metrics still running.
+        public var clipsDisabled: Bool
+        /// Classifier has stopped producing results (design-feasibility B1).
+        public var classifierStalled: Bool
     }
 
     public enum StopOutcome: Sendable {
@@ -50,6 +54,12 @@ public actor RecordingSessionActor {
 
     // Interruption bookkeeping
     private var gapStartMs: Int64?
+    private var resumeRetryTask: Task<Void, Never>?
+
+    // Storage-full degrade ladder (spec §3.1)
+    private var clipsDisabled = false
+    private var writeFailureStreak = 0
+    private static let maxWriteFailureStreak = 8
 
     public static let maxSessionMs: Int64 = 12 * 3_600_000   // spec §3.1 auto-stop
     public static let minSessionMs: Int64 = 5 * 60_000       // spec §3.1 discard
@@ -68,6 +78,8 @@ public actor RecordingSessionActor {
 
     public func start(sensitivity: Sensitivity) throws {
         guard session == nil else { return }
+        resumeRetryTask?.cancel()
+        resumeRetryTask = nil
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         params = DetectorParams.forSensitivity(sensitivity)
 
@@ -98,6 +110,8 @@ public actor RecordingSessionActor {
         eventsSoFar = 0
         episodesSoFar = 0
         inEpisodeNow = false
+        clipsDisabled = false
+        writeFailureStreak = 0
 
         let classifier = makeClassifier()
         try classifier.start { [weak self] scores in
@@ -106,6 +120,9 @@ public actor RecordingSessionActor {
         self.classifier = classifier
 
         let engine = AudioCaptureEngine()
+        engine.onConfigurationChange = { [weak self] in
+            Task { await self?.handle(sessionEvent: .configurationChanged) }
+        }
         try engine.start { [weak self] chunk in
             Task { await self?.consume(chunk) }
         }
@@ -120,9 +137,12 @@ public actor RecordingSessionActor {
     }
 
     @discardableResult
-    public func stop(reason: SessionRecord.EndReason = .user) throws -> StopOutcome {
+    public func stop(reason: SessionRecord.EndReason = .user,
+                     state: SessionRecord.State = .completed) throws -> StopOutcome {
         guard let record = session else { return .discardedTooShort }
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+        resumeRetryTask?.cancel()
+        resumeRetryTask = nil
         teardownAudio()
         if let detector { handle(outputs: detector.flush()) }
         heartbeatTask?.cancel()
@@ -141,7 +161,7 @@ public actor RecordingSessionActor {
             return .discardedTooShort
         }
         try repository.finalizeSession(sessionId: record.id, endMs: nowMs,
-                                       endReason: reason)
+                                       endReason: reason, state: state)
         for expired in (try? repository.expireClips(nowMs: nowMs)) ?? [] {
             try? FileManager.default.removeItem(
                 at: clipsRoot.deletingLastPathComponent()
@@ -160,7 +180,9 @@ public actor RecordingSessionActor {
             eventsSoFar: eventsSoFar,
             episodesSoFar: episodesSoFar,
             lastClassifierError: (classifier as? SoundAnalysisClassifier)?
-                .lastError?.localizedDescription)
+                .lastError?.localizedDescription,
+            clipsDisabled: clipsDisabled,
+            classifierStalled: assembler?.classifierIsStale ?? false)
     }
 
     // MARK: audio path
@@ -217,9 +239,15 @@ public actor RecordingSessionActor {
                     confirmedEpisodeId = nil
                     inEpisodeNow = false
                 }
+                writeFailureStreak = 0
             } catch {
                 // Storage-full degrade (spec §3.1): metrics writes failing must
-                // never crash the night. TODO(M3): in-memory retry + degraded flag.
+                // never crash the night. Clips are already cut off by the disk
+                // probe; a sustained streak of failed metrics writes means the
+                // disk is truly gone — the heartbeat finalizes gracefully off
+                // whatever rows made it in.
+                writeFailureStreak += 1
+                clipsDisabled = true
             }
         }
     }
@@ -228,7 +256,7 @@ public actor RecordingSessionActor {
     /// fresh in the 30 s ring, so coverage always exists.
     private func captureClip(sessionId: String, episodeId: String,
                              confirmingEvent: SnoreEvent) {
-        guard clipCount < Self.maxClipsPerNight,
+        guard clipCount < Self.maxClipsPerNight, !clipsDisabled,
               let ring, let assembler else { return }
         let wantedStart = assembler.sampleIndex(
             forTMs: confirmingEvent.startMs - Self.clipPreRollMs)
@@ -271,20 +299,67 @@ public actor RecordingSessionActor {
             // Mic re-pinned by the coordinator. If the engine died with the
             // route change, restart it.
             if engine?.isRunning == false {
+                markGapStart()
                 resumeCapture(reason: .routeChange)
             }
 
-        case .mediaServicesReset:
+        case .configurationChanged:
+            // Input format changed under the engine: the tap and converter are
+            // bound to the old format, so tear down and rebuild at the new one.
+            if let detector { handle(outputs: detector.flush()) }
             engine?.stop()
-            if gapStartMs == nil {
-                gapStartMs = Int64(Date().timeIntervalSince1970 * 1000)
-            }
+            markGapStart()
+            resumeCapture(reason: .routeChange)
+
+        case .mediaServicesReset:
+            // Every audio object belonged to the daemon that just died — the
+            // classifier included (Apple guidance). Rebuild all of it.
+            engine?.stop()
+            classifier?.stop()
+            classifier = nil
+            markGapStart()
             resumeCapture(reason: .unknown)
         }
     }
 
+    /// Gap bookkeeping must open before any resume attempt: the watchdog only
+    /// retries while a gap is open, so a resume that fails without one would
+    /// leave the night silently dead.
+    private func markGapStart() {
+        if gapStartMs == nil {
+            gapStartMs = Int64(Date().timeIntervalSince1970 * 1000)
+        }
+    }
+
+    /// Resume after an interruption: one immediate attempt, then a backoff
+    /// ladder inside a background assertion (design-feasibility M2 — the OS
+    /// grants ~30 s of runtime after `interruptionEnded`; the ladder fits it).
+    /// Beyond the ladder the 60 s heartbeat watchdog keeps retrying, and
+    /// heartbeat recovery keeps the night honest regardless.
     private func resumeCapture(reason: GapRecord.Reason) {
-        guard let record = session else { return }
+        guard attemptResume(reason: reason) == false else { return }
+        guard resumeRetryTask == nil else { return }
+        let assertion = BackgroundAssertion(name: "snorelab.resume")
+        resumeRetryTask = Task { [weak self] in
+            defer { assertion.end() }
+            for delay in [0.5, 2.0, 8.0, 20.0] {
+                try? await Task.sleep(for: .seconds(delay))
+                guard !Task.isCancelled,
+                      let self, await self.session != nil else { return }
+                if await self.attemptResume(reason: reason) { break }
+            }
+            await self?.clearResumeRetry()
+        }
+    }
+
+    private func clearResumeRetry() {
+        resumeRetryTask = nil
+    }
+
+    /// One resume attempt. Returns true when capture is running again.
+    private func attemptResume(reason: GapRecord.Reason) -> Bool {
+        guard let record = session else { return true }
+        if engine?.isRunning == true { return true }
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         do {
             try coordinator?.activate()
@@ -292,21 +367,35 @@ public actor RecordingSessionActor {
             // Re-anchor tMs to wall clock at resume (spec §0.2).
             assembler = FrameAssembler(anchorMs: nowMs,
                                        anchorSampleIndex: continueAt)
+            // A media-services reset takes the classifier with it.
+            if classifier == nil {
+                let fresh = makeClassifier()
+                try fresh.start { [weak self] scores in
+                    Task { await self?.attach(scores: scores) }
+                }
+                classifier = fresh
+            }
             let engine = AudioCaptureEngine()
+            engine.onConfigurationChange = { [weak self] in
+                Task { await self?.handle(sessionEvent: .configurationChanged) }
+            }
             try engine.start(startingAtSampleIndex: continueAt) { [weak self] chunk in
                 Task { await self?.consume(chunk) }
             }
             self.engine = engine
+            resumeRetryTask?.cancel()
+            resumeRetryTask = nil
             if let gapStart = gapStartMs {
                 try? repository.insertGap(GapRecord(
                     id: UUID().uuidString, sessionId: record.id,
                     startMs: gapStart, endMs: nowMs, reason: reason))
                 gapStartMs = nil
             }
+            return true
         } catch {
-            // Reactivation can fail while another app holds the session; the
-            // watchdog (heartbeat tick) retries. TODO(M3): backoff ladder +
-            // beginBackgroundTask wrapper per design-feasibility M2.
+            // Another app may still hold the audio session; the ladder (and
+            // then the watchdog) will try again.
+            return false
         }
     }
 
@@ -316,6 +405,32 @@ public actor RecordingSessionActor {
         try? repository.heartbeat(sessionId: record.id, nowMs: nowMs)
         if engine?.isRunning == false && gapStartMs != nil {
             resumeCapture(reason: .interruption)   // watchdog retry
+        }
+        // A stalled classifier with a live engine is the locked-screen failure
+        // mode: audio keeps flowing, inference is dead. Rebuild it once per
+        // tick — cheap, and it recovers the rest of the night if it was a
+        // transient daemon fault rather than the permanent background-GPU ban.
+        if engine?.isRunning == true, assembler?.classifierIsStale == true {
+            classifier?.stop()
+            classifier = nil
+            let fresh = makeClassifier()
+            if (try? fresh.start { [weak self] scores in
+                Task { await self?.attach(scores: scores) }
+            }) != nil {
+                classifier = fresh
+                assembler?.noteClassifierRestarted()
+            }
+        }
+        // Storage-full degrade ladder (spec §3.1): clips stop first; at
+        // critical the session finalizes gracefully instead of dying mid-write.
+        let free = DiskSpace.freeBytes(at: clipsRoot)
+        if free < DiskSpace.clipCutoffBytes { clipsDisabled = true }
+        if free < DiskSpace.criticalBytes
+            || writeFailureStreak >= Self.maxWriteFailureStreak {
+            // Persistent write failure finalizes gracefully as `recovered`
+            // rather than crash-looping (spec §3.1 storage-full).
+            _ = try? stop(reason: .crashRecovered, state: .recovered)
+            return
         }
         if nowMs - record.startedAtMs >= Self.maxSessionMs {
             _ = try? stop(reason: .autoStopped)
