@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4704B4C3DB57590C4F566C43 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879C6B84A089EB4B8850D3B2 /* OnboardingView.swift */; };
 		520A574E73E8E721B7BFE740 /* SnoreLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BEA1CF57A00F380F602DEF3 /* SnoreLabApp.swift */; };
 		853B339E69ACBCC11D9DC7E5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8A03140B1B02F4E48CD635 /* HomeView.swift */; };
+		864C9D9A439CA8CD28924B4A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92CB71BA7BA7CA3707263B3B /* Assets.xcassets */; };
 		8FC1582743DBC36ED12D927F /* SnoreAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 6395201F6074F1440E03391D /* SnoreAudio */; };
 		902DD15BEB6F344A2C9C0AA8 /* SnoreStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 67DEE7985E19B32A92B2407B /* SnoreStorage */; };
 		A973F77902663EE589527A5C /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C47E2B2EAFDBFC0FB8DE6C2 /* ReportView.swift */; };
@@ -27,6 +29,8 @@
 		6213EFA19F379EC3CB4660D0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		73CA8A4EFD6CBC2189CB860D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		7BEA1CF57A00F380F602DEF3 /* SnoreLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnoreLabApp.swift; sourceTree = "<group>"; };
+		879C6B84A089EB4B8850D3B2 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		92CB71BA7BA7CA3707263B3B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9DBABD3D43CEDA4D1C467832 /* SnoreStorage */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SnoreStorage; path = Packages/SnoreStorage; sourceTree = SOURCE_ROOT; };
 		D1686CDB980BB91BE4955427 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		D4E84E397CEDB92AD7A8A57E /* SnoreLab.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SnoreLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,9 +80,11 @@
 		F1BB96244053B4824CBE9026 /* SnoreLab */ = {
 			isa = PBXGroup;
 			children = (
+				92CB71BA7BA7CA3707263B3B /* Assets.xcassets */,
 				D1686CDB980BB91BE4955427 /* HistoryView.swift */,
 				5E8A03140B1B02F4E48CD635 /* HomeView.swift */,
 				0DE6FDE4FDBAF8F2A11E2D52 /* Info.plist */,
+				879C6B84A089EB4B8850D3B2 /* OnboardingView.swift */,
 				73CA8A4EFD6CBC2189CB860D /* PrivacyInfo.xcprivacy */,
 				5C47E2B2EAFDBFC0FB8DE6C2 /* ReportView.swift */,
 				6213EFA19F379EC3CB4660D0 /* SettingsView.swift */,
@@ -121,6 +127,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					24DFBC34053B2023F3524C14 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = E56DCD2AFDB115199E6E84E6 /* Build configuration list for PBXProject "SnoreLab" */;
@@ -152,6 +162,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				864C9D9A439CA8CD28924B4A /* Assets.xcassets in Resources */,
 				D07E22172713B71A89C20682 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -165,6 +176,7 @@
 			files = (
 				F5151D374E4C49BD60E54FAA /* HistoryView.swift in Sources */,
 				853B339E69ACBCC11D9DC7E5 /* HomeView.swift in Sources */,
+				4704B4C3DB57590C4F566C43 /* OnboardingView.swift in Sources */,
 				A973F77902663EE589527A5C /* ReportView.swift in Sources */,
 				E3CC711C22A2A822F3E14682 /* SettingsView.swift in Sources */,
 				520A574E73E8E721B7BFE740 /* SnoreLabApp.swift in Sources */,
@@ -178,12 +190,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = SnoreLab/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.snorelaboratory.SnoreLab;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
@@ -195,12 +212,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = SnoreLab/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.snorelaboratory.SnoreLab;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;

@@ -130,7 +130,8 @@ final class SessionRepositoryTests: XCTestCase {
             ev.peakDbfs = -30
             try repo.recordEvent(sessionId: session.id, ev)
         }
-        try repo.heartbeat(sessionId: session.id, nowMs: t0 + 140_000)
+        // Past the 5-minute keep threshold, so the discard rule does not apply.
+        try repo.heartbeat(sessionId: session.id, nowMs: t0 + 400_000)
 
         let recovered = try repo.recoverOrphanSessions()
         XCTAssertEqual(recovered, [session.id])
@@ -138,7 +139,7 @@ final class SessionRepositoryTests: XCTestCase {
         let stored = try repo.fetchSession(id: session.id)!
         XCTAssertEqual(stored.state, .recovered)
         XCTAssertEqual(stored.endReason, .crashRecovered)
-        XCTAssertEqual(stored.endedAtMs, t0 + 140_000,
+        XCTAssertEqual(stored.endedAtMs, t0 + 400_000,
                        "end = max(heartbeat, last event end)")
         XCTAssertEqual(stored.episodeCount, 1)
         XCTAssertEqual(stored.snoreTimeMs, 10_000)
@@ -156,18 +157,40 @@ final class SessionRepositoryTests: XCTestCase {
         XCTAssertTrue(remaining.allSatisfy { $0.episodeId != nil })
     }
 
-    func testDiscardSessionCascades() throws {
+    /// Spec §3.1: a discarded session keeps its row marked `discarded`, loses
+    /// every child row, and never appears in history.
+    func testDiscardSessionMarksAndClearsChildren() throws {
         let repo = try makeRepo()
         let session = try startSession(repo)
         var ev = SnoreEvent(startMs: session.startedAtMs, nfAtStart: -70)
         ev.endMs = ev.startMs + 2_000
         try repo.recordEvent(sessionId: session.id, ev)
         try repo.discardSession(sessionId: session.id)
-        XCTAssertNil(try repo.fetchSession(id: session.id))
+
+        XCTAssertEqual(try repo.fetchSession(id: session.id)?.state, .discarded)
         let count = try repo.db.writer.read { dbc in
             try Int.fetchOne(dbc, sql: "SELECT COUNT(*) FROM event") ?? -1
         }
-        XCTAssertEqual(count, 0, "ON DELETE CASCADE must clear child rows")
+        XCTAssertEqual(count, 0, "child rows must be cleared")
+        XCTAssertFalse(try repo.recentSessions().contains { $0.id == session.id },
+                       "discarded sessions never appear in history")
+    }
+
+    /// Spec §3.1: the under-5-minute rule applies on the crash-recovery path
+    /// too — a night that died at minute two is noise, not a report.
+    func testCrashRecoveryDiscardsShortSessions() throws {
+        let repo = try makeRepo()
+        let session = try startSession(repo)
+        var ev = SnoreEvent(startMs: session.startedAtMs + 10_000, nfAtStart: -70)
+        ev.endMs = ev.startMs + 2_000
+        ev.maxConf = 0.9
+        try repo.recordEvent(sessionId: session.id, ev)
+        try repo.heartbeat(sessionId: session.id,
+                           nowMs: session.startedAtMs + 120_000)
+
+        XCTAssertEqual(try repo.recoverOrphanSessions(), [],
+                       "a 2-minute crashed session is not recovered")
+        XCTAssertEqual(try repo.fetchSession(id: session.id)?.state, .discarded)
     }
 
     func testClipExpiry() throws {
