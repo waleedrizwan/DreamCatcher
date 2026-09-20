@@ -15,6 +15,15 @@ let package = Package(
         // The platform adapter layer (spec §0.1): everything that touches
         // AVFoundation/SoundAnalysis lives here, behind protocols that
         // SnoreCore's pure logic never sees.
-        .target(name: "SnoreAudio", dependencies: ["SnoreCore", "SnoreStorage"]),
+        .target(
+            name: "SnoreAudio",
+            dependencies: ["SnoreCore", "SnoreStorage"],
+            resources: [
+                // Precompiled (`coremlcompiler compile`) so SwiftPM and Xcode
+                // ship the same bytes; regenerate with tools/yamnet/.
+                .copy("Resources/YAMNet.mlmodelc"),
+                .copy("Resources/yamnet_class_map.csv"),
+            ]),
+        .testTarget(name: "SnoreAudioTests", dependencies: ["SnoreAudio"]),
     ]
 )

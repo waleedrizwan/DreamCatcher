@@ -43,6 +43,11 @@ public actor RecordingSessionActor {
     private var assembler: FrameAssembler?
     private var ring: PCMRingBuffer?
     private var heartbeatTask: Task<Void, Never>?
+    private var chunkTask: Task<Void, Never>?
+    private var chunkContinuation: AsyncStream<AudioCaptureEngine.Chunk>.Continuation?
+    /// Bumped whenever the pipe is torn down, so a chunk the old consumer had
+    /// already pulled is recognizable when it reaches `consume` afterwards.
+    private var pipeGeneration = 0
 
     // Episode bookkeeping (write policy, spec §3)
     private var pendingEventIds: [String] = []
@@ -90,43 +95,44 @@ public actor RecordingSessionActor {
         }
         self.coordinator = coordinator
 
-        let record = try repository.startSession(
-            nowMs: nowMs,
-            tzId: TimeZone.current.identifier,
-            tzOffsetMin: TimeZone.current.secondsFromGMT() / 60,
-            params: params, sensitivity: sensitivity,
-            appVersion: Bundle.main
-                .object(forInfoDictionaryKey: "CFBundleShortVersionString")
-                as? String ?? "dev",
-            deviceModel: deviceModel())
-        session = record
+        // Everything from here can throw (DB insert, model load, engine
+        // start). A half-started session reads as "recording" to the UI and
+        // makes every later start() a silent no-op, so undo all of it.
+        do {
+            let record = try repository.startSession(
+                nowMs: nowMs,
+                tzId: TimeZone.current.identifier,
+                tzOffsetMin: TimeZone.current.secondsFromGMT() / 60,
+                params: params, sensitivity: sensitivity,
+                appVersion: Bundle.main
+                    .object(forInfoDictionaryKey: "CFBundleShortVersionString")
+                    as? String ?? "dev",
+                deviceModel: deviceModel())
+            session = record
 
-        detector = SnoreDetector(params: params)
-        assembler = FrameAssembler(anchorMs: nowMs, anchorSampleIndex: 0)
-        ring = PCMRingBuffer(seconds: 30)
-        pendingEventIds = []
-        confirmedEpisodeId = nil
-        clipCount = 0
-        eventsSoFar = 0
-        episodesSoFar = 0
-        inEpisodeNow = false
-        clipsDisabled = false
-        writeFailureStreak = 0
+            detector = SnoreDetector(params: params)
+            assembler = FrameAssembler(anchorMs: nowMs, anchorSampleIndex: 0)
+            ring = PCMRingBuffer(seconds: 30)
+            pendingEventIds = []
+            confirmedEpisodeId = nil
+            clipCount = 0
+            eventsSoFar = 0
+            episodesSoFar = 0
+            inEpisodeNow = false
+            clipsDisabled = false
+            writeFailureStreak = 0
 
-        let classifier = makeClassifier()
-        try classifier.start { [weak self] scores in
-            Task { await self?.attach(scores: scores) }
-        }
-        self.classifier = classifier
+            let classifier = makeClassifier()
+            self.classifier = classifier
+            try classifier.start { [weak self] scores in
+                Task { await self?.attach(scores: scores) }
+            }
 
-        let engine = AudioCaptureEngine()
-        engine.onConfigurationChange = { [weak self] in
-            Task { await self?.handle(sessionEvent: .configurationChanged) }
+            engine = try startEngine(startingAtSampleIndex: 0)
+        } catch {
+            rollBackFailedStart()
+            throw error
         }
-        try engine.start { [weak self] chunk in
-            Task { await self?.consume(chunk) }
-        }
-        self.engine = engine
 
         heartbeatTask = Task { [weak self] in
             while !Task.isCancelled {
@@ -134,6 +140,20 @@ public actor RecordingSessionActor {
                 await self?.heartbeatTick()
             }
         }
+    }
+
+    private func rollBackFailedStart() {
+        resumeRetryTask?.cancel()
+        resumeRetryTask = nil
+        teardownAudio()
+        if let record = session {
+            try? repository.discardSession(sessionId: record.id)
+        }
+        session = nil
+        detector = nil
+        assembler = nil
+        ring = nil
+        gapStartMs = nil
     }
 
     @discardableResult
@@ -144,7 +164,7 @@ public actor RecordingSessionActor {
         resumeRetryTask?.cancel()
         resumeRetryTask = nil
         teardownAudio()
-        if let detector { handle(outputs: detector.flush()) }
+        flushDetector()
         heartbeatTask?.cancel()
         heartbeatTask = nil
 
@@ -179,17 +199,65 @@ public actor RecordingSessionActor {
             inEpisode: inEpisodeNow,
             eventsSoFar: eventsSoFar,
             episodesSoFar: episodesSoFar,
-            lastClassifierError: (classifier as? SoundAnalysisClassifier)?
-                .lastError?.localizedDescription,
+            lastClassifierError: classifier?.lastError?.localizedDescription,
             clipsDisabled: clipsDisabled,
             classifierStalled: assembler?.classifierIsStale ?? false)
     }
 
     // MARK: audio path
 
-    private func consume(_ chunk: AudioCaptureEngine.Chunk) {
-        guard session != nil, let assembler, let detector else { return }
+    /// Chunks flow through one AsyncStream consumed by one task so they reach
+    /// `consume` in capture order. One unstructured Task per chunk gives no
+    /// ordering guarantee, and a reordered chunk would hand the classifier a
+    /// backwards sample position and the ring buffer a scrambled window.
+    private func startEngine(startingAtSampleIndex index: Int64) throws -> AudioCaptureEngine {
+        stopChunkPipe()
+        let (stream, continuation) = AsyncStream.makeStream(
+            of: AudioCaptureEngine.Chunk.self)
+        chunkContinuation = continuation
+        let generation = pipeGeneration
+        chunkTask = Task { [weak self] in
+            for await chunk in stream {
+                await self?.consume(chunk, generation: generation)
+            }
+        }
+        let engine = AudioCaptureEngine()
+        engine.onConfigurationChange = { [weak self] in
+            Task { await self?.handle(sessionEvent: .configurationChanged) }
+        }
+        do {
+            try engine.start(startingAtSampleIndex: index) { chunk in
+                continuation.yield(chunk)
+            }
+        } catch {
+            stopChunkPipe()
+            throw error
+        }
+        return engine
+    }
+
+    private func stopEngine() {
+        engine?.stop()
+        stopChunkPipe()
+    }
+
+    private func stopChunkPipe() {
+        pipeGeneration += 1
+        chunkContinuation?.finish()
+        chunkContinuation = nil
+        chunkTask?.cancel()
+        chunkTask = nil
+    }
+
+    private func consume(_ chunk: AudioCaptureEngine.Chunk, generation: Int) {
+        guard session != nil else { return }
+        // The engine's sample clock already counted this chunk, so the ring
+        // (indexed by that clock) takes it even when it is stale.
         ring?.write(chunk.int16s)
+        // Cancelling the old consumer does not abort a call it had already
+        // made. A pre-gap chunk must not reach the flushed detector or shift
+        // the re-anchored assembler's sample clock.
+        guard generation == pipeGeneration, let assembler, let detector else { return }
         classifier?.process(samples: chunk.floats,
                             atSampleIndex: chunk.firstSampleIndex)
         for frame in assembler.push(chunk.floats) {
@@ -198,7 +266,20 @@ public actor RecordingSessionActor {
     }
 
     private func attach(scores: ClassifierScores) {
-        assembler?.attach(scores: scores)
+        guard session != nil, let assembler, let detector else { return }
+        for frame in assembler.attach(scores: scores) {
+            handle(outputs: detector.process(frame))
+        }
+    }
+
+    /// Close out the detector at the end of a capture segment. The assembler
+    /// may still hold the segment's last frame; it goes through first.
+    private func flushDetector() {
+        guard let detector else { return }
+        for frame in assembler?.drain() ?? [] {
+            handle(outputs: detector.process(frame))
+        }
+        handle(outputs: detector.flush())
     }
 
     private func handle(outputs: [DetectorOutput]) {
@@ -288,8 +369,8 @@ public actor RecordingSessionActor {
         guard session != nil else { return }
         switch sessionEvent {
         case .interruptionBegan:
-            if let detector { handle(outputs: detector.flush()) }
-            engine?.stop()
+            flushDetector()
+            stopEngine()
             gapStartMs = Int64(Date().timeIntervalSince1970 * 1000)
 
         case .interruptionEnded:
@@ -299,6 +380,8 @@ public actor RecordingSessionActor {
             // Mic re-pinned by the coordinator. If the engine died with the
             // route change, restart it.
             if engine?.isRunning == false {
+                flushDetector()
+                stopEngine()
                 markGapStart()
                 resumeCapture(reason: .routeChange)
             }
@@ -306,15 +389,16 @@ public actor RecordingSessionActor {
         case .configurationChanged:
             // Input format changed under the engine: the tap and converter are
             // bound to the old format, so tear down and rebuild at the new one.
-            if let detector { handle(outputs: detector.flush()) }
-            engine?.stop()
+            flushDetector()
+            stopEngine()
             markGapStart()
             resumeCapture(reason: .routeChange)
 
         case .mediaServicesReset:
             // Every audio object belonged to the daemon that just died — the
             // classifier included (Apple guidance). Rebuild all of it.
-            engine?.stop()
+            flushDetector()
+            stopEngine()
             classifier?.stop()
             classifier = nil
             markGapStart()
@@ -375,14 +459,10 @@ public actor RecordingSessionActor {
                 }
                 classifier = fresh
             }
-            let engine = AudioCaptureEngine()
-            engine.onConfigurationChange = { [weak self] in
-                Task { await self?.handle(sessionEvent: .configurationChanged) }
-            }
-            try engine.start(startingAtSampleIndex: continueAt) { [weak self] chunk in
-                Task { await self?.consume(chunk) }
-            }
-            self.engine = engine
+            // The sample clock is contiguous across the gap, so the classifier
+            // would otherwise splice pre-gap audio into its first window.
+            classifier?.reset()
+            engine = try startEngine(startingAtSampleIndex: continueAt)
             resumeRetryTask?.cancel()
             resumeRetryTask = nil
             if let gapStart = gapStartMs {
@@ -438,7 +518,7 @@ public actor RecordingSessionActor {
     }
 
     private func teardownAudio() {
-        engine?.stop()
+        stopEngine()
         engine = nil
         classifier?.stop()
         classifier = nil

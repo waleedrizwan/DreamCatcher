@@ -19,7 +19,7 @@ The detection pipeline below is deliberately structured so the classifier is a s
 
 ## 1. Minimum iOS version: **iOS 17.0**
 
-- `SNClassifySoundRequest(classifierIdentifier: .version1)` — the built-in classifier with the `"snoring"` label — requires iOS 15.0+. Confirmed: `.version1` is the only built-in classifier identifier, its label set (300+ classes) includes `snoring`, plus adjacent labels we can exploit (`breathing`, `cough`, `gasp`, `speech`, `snort`).
+- `SNClassifySoundRequest(classifierIdentifier: .version1)` — the built-in classifier with the `"snoring"` label — requires iOS 15.0+. Confirmed: `.version1` is the only built-in classifier identifier, its label set (300+ classes) includes `snoring`, plus adjacent labels we can exploit (`breathing`, `cough`, `gasp`, `speech`; verified against the 303-label list on iOS 26 — there is no `snort`, no choking, no teeth-grinding label).
 - Swift Charts requires iOS 16.0+ (and `chartScrollableAxes`/scrolling charts, useful for the night timeline, is iOS 17+).
 - The Observation framework (`@Observable`) requires iOS 17.0+ and is the recommended SwiftUI state pattern; it removes the `ObservableObject`/`@Published` boilerplate and over-invalidation.
 - As of mid-2026, iOS 17 covers the overwhelming majority of active iPhones; nothing about this app targets old hardware.
@@ -191,7 +191,7 @@ Mark `Clips/` with `isExcludedFromBackup = true` (stats are small and back up; a
   1. **Home / Record** — big Start button; pre-flight checks (mic permission, disk space, battery/charging hint); while recording: dim near-black UI, elapsed time, live "quiet/snoring" pip, Stop (confirm-to-stop to prevent pocket taps).
   2. **Night Report** — auto-presented on Stop and reachable from History. Summary cards (total snore time, episode count, session duration, % of night), intensity breakdown, timeline, episode list with inline clip playback (`AVAudioPlayer`, category `.playback`), delete-clip affordance.
   3. **History** — list grouped by week + month calendar grid (custom SwiftUI grid, not Charts) with per-day dot colored by snore severity; week/month trend charts.
-  4. **Settings** — sensitivity (maps to confidence threshold Low 0.75 / Med 0.6 / High 0.45), clip retention, storage usage + "delete all data", disclaimer, about.
+  4. **Settings** — sensitivity (maps to confidence threshold Low 0.50 / Med 0.35 / High 0.22 on the YAMNet scale, spec §1.1), clip retention, storage usage + "delete all data", disclaimer, about.
 - **Swift Charts:**
   - Timeline: `Chart` of `minuteAggregate` rows → `RectangleMark(xStart:xEnd:)` bins colored by intensity via `.foregroundStyle(by:)`; gray marks for interruption segments; `chartXScale` over the full night; `chartScrollableAxes(.horizontal)` (iOS 17) for long nights on small screens.
   - Trends: `BarMark` (x: night, y: total snore minutes) with `RuleMark` for the period average; `chartXSelection` for tap-to-inspect; second toggleable series for episode count.

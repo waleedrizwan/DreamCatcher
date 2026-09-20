@@ -30,9 +30,9 @@ ClassifierFrame {
 
 ### 0.1 Platform adapters (the only per-platform detection code)
 
-- **iOS**: `AVAudioEngine` input tap at the **hardware format** (typically 48 kHz — input taps cannot request 16 kHz) → `AVAudioConverter` → 16 kHz mono Float32 → classifier. Primary classifier: bundled YAMNet-class Core ML model, `computeUnits = .cpuOnly` (background-safe; the built-in SoundAnalysis classifier fails under a locked screen on iOS 17/18 — see `docs/design-feasibility.md` B1). Startup assertion: the model's label map contains the snore and speech classes; fail loudly in debug.
+- **iOS**: `AVAudioEngine` input tap at the **hardware format** (typically 48 kHz — input taps cannot request 16 kHz) → `AVAudioConverter` → 16 kHz mono Float32 → classifier. Primary classifier: bundled YAMNet Core ML model (`ios/Packages/SnoreAudio/Sources/SnoreAudio/Resources/YAMNet.mlmodelc`, built by `tools/yamnet/`), `computeUnits = .cpuOnly` (background-safe; the built-in SoundAnalysis classifier fails under a locked screen — confirmed by Spike 0 on iPhone 17 / iOS 26.6, 2026-09-19: `SNError` code 2 at lock, 7 results then none for 70 min; see `docs/design-feasibility.md` B1). The adapter feeds one 15 600-sample window (0.975 s) every 8 000 samples on the session-sample grid, **peak-normalized** to 0.5 with gain capped at +30 dB (YAMNet has no level normalization; distant snoring otherwise scores low — `tools/yamnet/level_experiment.py`). `rmsDbfs`/`peakDbfs` are always measured on the raw audio. Startup assertion: the model's label map contains the snore and speech classes; fail loudly in debug.
 - **Android**: `AudioRecord` (16 kHz mono PCM16, `VOICE_RECOGNITION` source) → YAMNet via MediaPipe Tasks AudioClassifier (`AUDIO_CLIPS` mode, our own windowing). Startup assertion: `"Snoring"` and `"Speech"` present in the class map.
-- Classifier window mismatch (0.975 s YAMNet vs 1.0 s nominal) is accepted: classifier confidence is attached to the `ClassifierFrame` whose window contains the classifier window's end; the state machine only ever sees normalized frames.
+- Classifier window mismatch (0.975 s YAMNet vs 1.0 s nominal) is accepted: classifier confidence is attached to the `ClassifierFrame` whose window **end** is nearest the classifier window's end (on aligned grids they coincide); the state machine only ever sees normalized frames. Levels are known at the hop boundary but the matching classifier result arrives slightly later, so an adapter holds each completed frame until its score lands or the next hop boundary, whichever is first; emitting at the boundary would pair every frame with the *previous* hop's score (loudness and confidence 500 ms apart). Scores older than 3 s read as 0. Every capture (re)start resets the classifier's window and drops results whose window ended at or before the new anchor, so pre-gap audio never colours post-gap frames.
 - A platform MAY skip classifier inference for frames whose `rmsDbfs` is below the loudness gate and substitute `snoreConf = 0, speechConf = 0` — the result is identical by definition (gated frames are negative). This is a battery optimization, not a behavioral difference.
 
 ### 0.2 Timestamps (normative — critique B4)
@@ -56,8 +56,8 @@ Never per-callback wall clock (immune to clock jumps, deterministic for fixtures
 |---|---|---|
 | `WINDOW_MS` | 1000 | analysis window |
 | `HOP_MS` | 500 | frame cadence |
-| `CONF_THRESHOLD` | iOS **0.60** / Android **0.35** | per-frame snore confidence to count as positive. The ONLY per-platform detection constants; unified if both platforms ship YAMNet-family models |
-| `CONF_STRONG` | iOS **0.80** / Android **0.55** | confidence that lets a single-frame event count as valid |
+| `CONF_THRESHOLD` | **0.35** | per-frame snore confidence to count as positive. YAMNet sigmoid scale: both platforms ship YAMNet-family models (iOS bundled Core ML, Android MediaPipe), so the former per-platform split is gone |
+| `CONF_STRONG` | **0.55** | confidence that lets a single-frame event count as valid |
 | `SPEECH_VETO_CONF` | 0.50 | speech veto floor (see positive-frame rule) |
 | `NF_INIT` | -60.0 dBFS | initial noise-floor estimate |
 | `NF_RISE_PER_FRAME` | 0.05 dB | noise-floor upward creep per frame (0.1 dB/s) |
@@ -72,13 +72,13 @@ Never per-callback wall clock (immune to clock jumps, deterministic for fixtures
 
 Note the deliberate product decision (feasibility B2): `MIN_EPISODE_SPAN_MS = 30000` means bouts shorter than 30 s are discarded entirely. Snoring that matters is sustained; coughs, grunts, and one-off snorts are not the product.
 
-**Sensitivity setting** (Settings UI: Low / Medium / High) is a spec-defined override of exactly two constants per platform:
+**Sensitivity setting** (Settings UI: Low / Medium / High) is a spec-defined override of exactly two constants:
 
-| Sensitivity | `CONF_THRESHOLD` (iOS / Android) | `CONF_STRONG` (iOS / Android) |
+| Sensitivity | `CONF_THRESHOLD` | `CONF_STRONG` |
 |---|---|---|
-| Low  | 0.75 / 0.50 | 0.90 / 0.70 |
-| Medium (default) | 0.60 / 0.35 | 0.80 / 0.55 |
-| High | 0.45 / 0.22 | 0.70 / 0.40 |
+| Low  | 0.50 | 0.70 |
+| Medium (default) | 0.35 | 0.55 |
+| High | 0.22 | 0.40 |
 
 The full effective parameter set is snapshotted into `session.detector_params_json` at session start.
 
@@ -181,7 +181,7 @@ Shared JSON files in `spec/fixtures/detector/`, run by an identical fixture-runn
 
 ```json
 { "name": "basic_bout",
-  "params": { "CONF_THRESHOLD": 0.6, "CONF_STRONG": 0.8 },
+  "params": { "CONF_THRESHOLD": 0.35, "CONF_STRONG": 0.55 },
   "frames": [ [tMs, rmsDbfs, peakDbfs, snoreConf, speechConf], ... ],
   "flushAtMs": [ 900000 ],
   "expect": {
