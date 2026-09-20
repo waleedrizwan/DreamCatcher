@@ -128,7 +128,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					24DFBC34053B2023F3524C14 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = CCY6PYVHZW;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -194,7 +194,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = CCY6PYVHZW;
 				INFOPLIST_FILE = SnoreLab/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -216,7 +216,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = CCY6PYVHZW;
 				INFOPLIST_FILE = SnoreLab/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

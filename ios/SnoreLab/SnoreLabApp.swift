@@ -22,14 +22,32 @@ final class AppDependencies {
     let recorder: RecordingSessionActor
     let clipsRoot: URL
     let spikeLogDir: URL
+    /// Where debug score logs land; also what Settings offers to share.
+    let scoreLogDir: URL
 
     init(repository: SessionRepository, clipsRoot: URL, spikeLogDir: URL) {
         self.repository = repository
         self.clipsRoot = clipsRoot
         self.spikeLogDir = spikeLogDir
+        self.scoreLogDir = spikeLogDir.appendingPathComponent("scores")
+        let scoreLogDir = self.scoreLogDir
         self.recorder = RecordingSessionActor(
             repository: repository, clipsRoot: clipsRoot,
-            makeClassifier: { SoundAnalysisClassifier() })
+            makeClassifier: {
+                #if DEBUG
+                // Read at session start, so flipping the switch takes effect
+                // on the next night rather than mid-session.
+                guard UserDefaults.standard.bool(forKey: scoreLoggingKey) else {
+                    return YAMNetClassifier()
+                }
+                let name = ISO8601DateFormatter.scoreLogName.string(from: Date())
+                return YAMNetClassifier(scoreLog: ScoreLog(
+                    url: scoreLogDir.appendingPathComponent("\(name).csv"),
+                    columns: ScoreLog.watchedClasses))
+                #else
+                return YAMNetClassifier()
+                #endif
+            })
     }
 
     static func live() -> AppDependencies {
@@ -119,3 +137,18 @@ Snore Laboratory is not a medical device. It does not diagnose, treat, or \
 monitor any medical condition, including sleep apnea. If you are concerned \
 about your sleep or breathing, talk to a physician.
 """
+
+#if DEBUG
+/// Settings switch: log every window's classifier scores for threshold
+/// tuning (spec §0.1 constants are set from real nights, not guesses).
+let scoreLoggingKey = "debugScoreLogging"
+
+extension ISO8601DateFormatter {
+    static let scoreLogName: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withYear, .withMonth, .withDay, .withTime]
+        formatter.timeZone = .current
+        return formatter
+    }()
+}
+#endif

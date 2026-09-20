@@ -7,6 +7,8 @@ results as the `expect` block. If an intent assertion fails, the fixture is
 wrong (or the detector is) — nothing gets written.
 
 Frames are [tMs, rmsDbfs, peakDbfs, snoreConf, speechConf], 500 ms hops.
+Confidences are on the YAMNet sigmoid scale (spec §1.1: Medium threshold
+0.35, strong 0.55), which both platforms now share.
 Synthetic fixtures use a t=0 anchor (real sessions use epoch ms; the
 detector only cares about deltas).
 
@@ -101,15 +103,15 @@ def main():
     detector_fixture("basic_bout", s, intent)
 
     # 2. Two-event blip: valid events, episode never confirms, discarded.
-    s = Seq().quiet(5).emit(2, -38, -34, 0.7).quiet(5).emit(2, -38, -34, 0.7).quiet(40)
+    s = Seq().quiet(5).emit(2, -38, -34, 0.45).quiet(5).emit(2, -38, -34, 0.45).quiet(40)
     def intent(r):
         assert r["eventsDetected"] == 2 and r["discardedEpisodes"] == 1, r
         assert r["episodes"] == [] and r["confirmedEpisodes"] == 0, r
     detector_fixture("blip_discard", s, intent)
 
     # 3. Single strong-conf frame is a valid event; single weak frame is not.
-    s = (Seq().quiet(5).emit(1, -38, -34, 0.85).quiet(10)
-         .emit(1, -38, -34, 0.7).quiet(40))
+    s = (Seq().quiet(5).emit(1, -38, -34, 0.6).quiet(10)
+         .emit(1, -38, -34, 0.45).quiet(40))
     def intent(r):
         assert r["eventsDetected"] == 1 and r["discardedEpisodes"] == 1, r
         assert r["episodes"] == [], r
@@ -130,7 +132,7 @@ def main():
 
     # 5. Loud TV: high RMS, snoreConf above threshold, but speech veto wins.
     #    An implementation that ignores speechConf fails this fixture.
-    s = Seq().quiet(5).emit(120, -30.0, -25.0, 0.65, speech=0.7).quiet(40)
+    s = Seq().quiet(5).emit(120, -30.0, -25.0, 0.45, speech=0.7).quiet(40)
     def intent(r):
         assert r["eventsDetected"] == 0 and r["episodes"] == [], r
         assert r["discardedEpisodes"] == 0, r
@@ -139,7 +141,7 @@ def main():
     # 6. Quiet snorer over a fan: floor rises to the fan level, gate clamps at
     #    -38, snore at -35 still passes; relative intensity → light.
     s = (Seq().quiet(130, rms=-48.0)   # 260 frames: nf reaches -48 (creep 0.05/frame)
-         .bout(7, conf=0.75, rms=-35.0, peak0=-30.0, gap_rms=-48.0)
+         .bout(7, conf=0.5, rms=-35.0, peak0=-30.0, gap_rms=-48.0)
          .quiet(40, rms=-48.0))
     def intent(r):
         assert len(r["episodes"]) == 1, r
@@ -169,22 +171,22 @@ def main():
         assert r["episodes"][1]["bucket"] == "loud", r
     detector_fixture("gap_resume", s, intent, flush_at=flush_at)
 
-    # 9a. High sensitivity confirms a bout that Medium would miss (conf 0.5).
-    s = Seq().quiet(5).bout(7, conf=0.5).quiet(40)
+    # 9a. High sensitivity confirms a bout that Medium would miss (conf 0.3).
+    s = Seq().quiet(5).bout(7, conf=0.3).quiet(40)
     def intent(r):
         assert len(r["episodes"]) == 1, r
     detector_fixture("sensitivity_high", s, intent,
-                     params={"CONF_THRESHOLD": 0.45, "CONF_STRONG": 0.70})
+                     params={"CONF_THRESHOLD": 0.22, "CONF_STRONG": 0.40})
 
-    # 9b. Low sensitivity rejects a bout that Medium would accept (conf 0.7).
-    s = Seq().quiet(5).bout(7, conf=0.7).quiet(40)
+    # 9b. Low sensitivity rejects a bout that Medium would accept (conf 0.45).
+    s = Seq().quiet(5).bout(7, conf=0.45).quiet(40)
     def intent(r):
         assert r["eventsDetected"] == 0 and r["episodes"] == [], r
     detector_fixture("sensitivity_low", s, intent,
-                     params={"CONF_THRESHOLD": 0.75, "CONF_STRONG": 0.90})
+                     params={"CONF_THRESHOLD": 0.50, "CONF_STRONG": 0.70})
 
-    # 9c. Same conf-0.7 bout under Medium DOES confirm (companion to 9b).
-    s = Seq().quiet(5).bout(7, conf=0.7).quiet(40)
+    # 9c. Same conf-0.45 bout under Medium DOES confirm (companion to 9b).
+    s = Seq().quiet(5).bout(7, conf=0.45).quiet(40)
     def intent(r):
         assert len(r["episodes"]) == 1, r
     detector_fixture("sensitivity_medium_baseline", s, intent)
@@ -202,7 +204,7 @@ def main():
     detector_fixture("peak_tie_earliest", s, intent)
 
     # 11. Two-hour synthetic night: ambient ramps -75 → -45; the min-follower
-    #     floor tracks it. A conf-0.3 loud burst early does nothing; a real bout
+    #     floor tracks it. A conf-0.2 loud burst early does nothing; a real bout
     #     mid-night (floor ≈ -60) is moderate; a -50 dBFS sound under a -47.5
     #     floor late in the night is correctly below the gate.
     s = Seq()
@@ -214,7 +216,7 @@ def main():
         return -75.0 + 30.0 * (idx / total_frames)
     while i < total_frames:
         if i == 1_200:  # t=600 s: loud but low-confidence burst
-            s.emit(1, -20.0, -15.0, 0.3); i += 1
+            s.emit(1, -20.0, -15.0, 0.2); i += 1
         elif i == bout_at:
             for k in range(7):  # bout: 3 frames + 8 ambient frames per event
                 s.emit(3, -35.0, -30.0, 0.9); i += 3

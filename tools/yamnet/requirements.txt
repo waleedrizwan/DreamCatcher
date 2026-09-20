@@ -1,0 +1,6 @@
+# Python 3.11. TensorFlow 2.15 is the last release with Keras 2 built in,
+# which the yamnet.h5 weights and coremltools' TF frontend both expect.
+tensorflow==2.15.1
+coremltools>=8.0,<9
+numpy<2
+soundfile
