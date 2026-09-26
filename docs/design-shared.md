@@ -2,7 +2,7 @@ The project directory does not exist yet — fully greenfield, so no code explor
 
 ---
 
-# SNORE LABORATORY — SHARED BEHAVIOR SPEC v1.0
+# DREAM CATCHER — SHARED BEHAVIOR SPEC v1.0
 
 This document is the single source of truth for behavior that MUST be identical between the iOS (Swift) and Android (Kotlin) apps. Anything not specified here (UI styling, navigation, platform service wiring) is platform-discretionary. All constants below are normative defaults; they live in one constants block per platform (`DetectorParams`) and are snapshotted into every session record.
 
@@ -303,9 +303,9 @@ Every number on this screen is recomputable from `episode`/`event` rows; the rol
 - **Stored on device**: SQLite metrics DB; AAC clips only for confirmed snore episodes (max 30 × 12 s per night). **Never stored**: full-night audio (raw PCM exists only in the 30 s in-memory ring buffer), anything off-device.
 - **Network**: the MVP makes **zero network calls** — no accounts, no analytics/crash SDKs, no cloud. This is verifiable (no networking entitlement usage) and is the headline privacy claim.
 - **OS backups**: excluded — the promise is "never leaves this device." iOS: `isExcludedFromBackup = true` on DB and clips dirs; Android: `allowBackup=false`.
-- **Mic indicators**: the OS mic indicator (iOS orange dot, Android green pill) will be visible all night — expected and disclosed in onboarding copy: "Your phone's microphone indicator stays on while Snore Laboratory listens. Audio is analyzed on this phone and only short clips of detected snoring are saved."
-- **Permissions**: iOS `NSMicrophoneUsageDescription` = "Snore Laboratory listens overnight to detect snoring. Audio is analyzed on your phone; only short snore clips are saved, and nothing leaves your device." Android: `RECORD_AUDIO`, foreground service with `foregroundServiceType="microphone"` (+ `FOREGROUND_SERVICE_MICROPHONE` on API 34+), persistent notification "Monitoring for snoring", `POST_NOTIFICATIONS`.
-- **Disclaimer** (onboarding, report footer, store listing): "Snore Laboratory is not a medical device. It does not diagnose, treat, or monitor any medical condition, including sleep apnea. If you are concerned about your sleep or breathing, talk to a physician."
+- **Mic indicators**: the OS mic indicator (iOS orange dot, Android green pill) will be visible all night — expected and disclosed in onboarding copy: "Your phone's microphone indicator stays on while Dream Catcher listens. Audio is analyzed on this phone and only short clips of detected snoring are saved."
+- **Permissions**: iOS `NSMicrophoneUsageDescription` = "Dream Catcher listens overnight to detect snoring. Audio is analyzed on your phone; only short snore clips are saved, and nothing leaves your device." Android: `RECORD_AUDIO`, foreground service with `foregroundServiceType="microphone"` (+ `FOREGROUND_SERVICE_MICROPHONE` on API 34+), persistent notification "Monitoring for snoring", `POST_NOTIFICATIONS`.
+- **Disclaimer** (onboarding, report footer, store listing): "Dream Catcher is not a medical device. It does not diagnose, treat, or monitor any medical condition, including sleep apnea. If you are concerned about your sleep or breathing, talk to a physician."
 - **Deletion**: per-night delete and "Delete all data" both hard-delete rows and audio files immediately.
 
 ---
@@ -320,8 +320,8 @@ Every number on this screen is recomputable from `episode`/`event` rows; the rol
 Key risks to validate early: real-world calibration of `CONF_THRESHOLD` on each classifier (record a few nights, tune the two per-platform constants only); iOS `windowDurationConstraint` acceptance of 1.0 s; Android OEM battery-killer behavior on the foreground service (heartbeat + recovery path covers data loss).
 
 ### Critical Files for Implementation
-- /Users/waleedrizwan/code/snore-labratory/spec/SHARED_BEHAVIOR_SPEC.md
-- /Users/waleedrizwan/code/snore-labratory/spec/schema/v1.sql
-- /Users/waleedrizwan/code/snore-labratory/spec/fixtures/detector/basic_bout.json (plus sibling fixture files listed in 1.3)
-- /Users/waleedrizwan/code/snore-labratory/ios/SnoreLab/Detection/SnoreDetector.swift
-- /Users/waleedrizwan/code/snore-labratory/android/app/src/main/kotlin/com/snorelab/detection/SnoreDetector.kt
+- spec/SHARED_BEHAVIOR_SPEC.md
+- spec/schema/v1.sql
+- spec/fixtures/detector/basic_bout.json (plus sibling fixture files listed in 1.3)
+- ios/DreamCatcher/Detection/SnoreDetector.swift
+- android/app/src/main/kotlin/com/dreamcatcher/detection/SnoreDetector.kt

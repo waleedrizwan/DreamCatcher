@@ -1,0 +1,410 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0A656128DAFD9883F6E059D2 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9EDA0CE2FBEE8F7D2A155E9 /* HistoryView.swift */; };
+		2CDA595851107E90B6481C1B /* DreamCatcherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C4CC5643812B427846013B /* DreamCatcherApp.swift */; };
+		2D2414A1B4EDCAA0D508D18F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A4C7272BF493D1DFDC480F52 /* Assets.xcassets */; };
+		47D7CB4FC2946BAB93E308CE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 63DF775812E99FDDC5A07B8C /* PrivacyInfo.xcprivacy */; };
+		51E3503076B54011E4010939 /* BedtimeReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 593AEFB704CCF20AA9293726 /* BedtimeReminder.swift */; };
+		A96C28425F7CB7DD9629A796 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04D0031BFBA12A3C0F9A8386 /* HomeView.swift */; };
+		AC21A21B43F66E5FB5FFA1D8 /* SnoreStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 02A60EEFD9C6DB5F6563E2C4 /* SnoreStorage */; };
+		AE1F7BA48A9C182C09A430D3 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A80BB04932E86E253E24D9 /* OnboardingView.swift */; };
+		B05D556072D93A6BC3EE185B /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6C7FBA485B86805B8FEDA36 /* ReportView.swift */; };
+		F23191C6611B48407B3ED8CC /* SnoreAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF33D1634ACCA29907CC02 /* SnoreAudio */; };
+		F88A3583E2BB66AB18C8E527 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C76D992021D7C4DB9C5A7395 /* SettingsView.swift */; };
+		FF04A2E8E684CCED653B5B32 /* SnoreCore in Frameworks */ = {isa = PBXBuildFile; productRef = A27DE851D407381912852596 /* SnoreCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		03A80BB04932E86E253E24D9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		04D0031BFBA12A3C0F9A8386 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		4350E8C67274544C19012079 /* SnoreStorage */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SnoreStorage; path = Packages/SnoreStorage; sourceTree = SOURCE_ROOT; };
+		49EA566F7C8B05D38FE9865E /* SnoreCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SnoreCore; path = Packages/SnoreCore; sourceTree = SOURCE_ROOT; };
+		593AEFB704CCF20AA9293726 /* BedtimeReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BedtimeReminder.swift; sourceTree = "<group>"; };
+		63DF775812E99FDDC5A07B8C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		81BA97C5563DEA3C498EE2A7 /* SnoreAudio */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SnoreAudio; path = Packages/SnoreAudio; sourceTree = SOURCE_ROOT; };
+		A4C7272BF493D1DFDC480F52 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BBC74FCE22B29702EACA5402 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C76D992021D7C4DB9C5A7395 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C9EDA0CE2FBEE8F7D2A155E9 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		D8C4CC5643812B427846013B /* DreamCatcherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DreamCatcherApp.swift; sourceTree = "<group>"; };
+		E488A6D0CC04894EFCF2E441 /* DreamCatcher.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DreamCatcher.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6C7FBA485B86805B8FEDA36 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		425696E7FEAE406062D51596 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF04A2E8E684CCED653B5B32 /* SnoreCore in Frameworks */,
+				F23191C6611B48407B3ED8CC /* SnoreAudio in Frameworks */,
+				AC21A21B43F66E5FB5FFA1D8 /* SnoreStorage in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9B2C2B6EA9E64098DA8E0F78 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				81BA97C5563DEA3C498EE2A7 /* SnoreAudio */,
+				49EA566F7C8B05D38FE9865E /* SnoreCore */,
+				4350E8C67274544C19012079 /* SnoreStorage */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		C0F706457159E6C8E153E2D9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E488A6D0CC04894EFCF2E441 /* DreamCatcher.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D0B29AC4AF6C26F1283437B7 = {
+			isa = PBXGroup;
+			children = (
+				E838DB004527949170A933C0 /* DreamCatcher */,
+				9B2C2B6EA9E64098DA8E0F78 /* Packages */,
+				C0F706457159E6C8E153E2D9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E838DB004527949170A933C0 /* DreamCatcher */ = {
+			isa = PBXGroup;
+			children = (
+				A4C7272BF493D1DFDC480F52 /* Assets.xcassets */,
+				593AEFB704CCF20AA9293726 /* BedtimeReminder.swift */,
+				D8C4CC5643812B427846013B /* DreamCatcherApp.swift */,
+				C9EDA0CE2FBEE8F7D2A155E9 /* HistoryView.swift */,
+				04D0031BFBA12A3C0F9A8386 /* HomeView.swift */,
+				BBC74FCE22B29702EACA5402 /* Info.plist */,
+				03A80BB04932E86E253E24D9 /* OnboardingView.swift */,
+				63DF775812E99FDDC5A07B8C /* PrivacyInfo.xcprivacy */,
+				F6C7FBA485B86805B8FEDA36 /* ReportView.swift */,
+				C76D992021D7C4DB9C5A7395 /* SettingsView.swift */,
+			);
+			path = DreamCatcher;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5C958A929CC649A2172AE3A7 /* DreamCatcher */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5AD275EFAE73E43316EBB602 /* Build configuration list for PBXNativeTarget "DreamCatcher" */;
+			buildPhases = (
+				D3CE2AE227823EA6CFFDBC66 /* Sources */,
+				F0B37E7CDF8D907B2D333E2F /* Resources */,
+				425696E7FEAE406062D51596 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DreamCatcher;
+			packageProductDependencies = (
+				A27DE851D407381912852596 /* SnoreCore */,
+				41CF33D1634ACCA29907CC02 /* SnoreAudio */,
+				02A60EEFD9C6DB5F6563E2C4 /* SnoreStorage */,
+			);
+			productName = DreamCatcher;
+			productReference = E488A6D0CC04894EFCF2E441 /* DreamCatcher.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9239B73F80B8B84F8B732D2A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					5C958A929CC649A2172AE3A7 = {
+						DevelopmentTeam = CCY6PYVHZW;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 23A70A84BD5F9EC2BDE00C62 /* Build configuration list for PBXProject "DreamCatcher" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D0B29AC4AF6C26F1283437B7;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				062D5AD3AECDAF36CBC1300A /* XCLocalSwiftPackageReference "Packages/SnoreAudio" */,
+				7C323AF5C4DC10A91A05DCA8 /* XCLocalSwiftPackageReference "Packages/SnoreCore" */,
+				8E58A597BACB36F1145B4C05 /* XCLocalSwiftPackageReference "Packages/SnoreStorage" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C0F706457159E6C8E153E2D9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5C958A929CC649A2172AE3A7 /* DreamCatcher */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F0B37E7CDF8D907B2D333E2F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2D2414A1B4EDCAA0D508D18F /* Assets.xcassets in Resources */,
+				47D7CB4FC2946BAB93E308CE /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D3CE2AE227823EA6CFFDBC66 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				51E3503076B54011E4010939 /* BedtimeReminder.swift in Sources */,
+				2CDA595851107E90B6481C1B /* DreamCatcherApp.swift in Sources */,
+				0A656128DAFD9883F6E059D2 /* HistoryView.swift in Sources */,
+				A96C28425F7CB7DD9629A796 /* HomeView.swift in Sources */,
+				AE1F7BA48A9C182C09A430D3 /* OnboardingView.swift in Sources */,
+				B05D556072D93A6BC3EE185B /* ReportView.swift in Sources */,
+				F88A3583E2BB66AB18C8E527 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		04D0F00A0A667BE5C6CD85FC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CCY6PYVHZW;
+				INFOPLIST_FILE = DreamCatcher/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dreamcatcher.DreamCatcher;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		3FB3BFE78626B2713FB08304 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5DE9748BB7E7CDC38A3F0B48 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CCY6PYVHZW;
+				INFOPLIST_FILE = DreamCatcher/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dreamcatcher.DreamCatcher;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		9358EBA00AD4A8C2A717B917 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		23A70A84BD5F9EC2BDE00C62 /* Build configuration list for PBXProject "DreamCatcher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3FB3BFE78626B2713FB08304 /* Debug */,
+				9358EBA00AD4A8C2A717B917 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5AD275EFAE73E43316EBB602 /* Build configuration list for PBXNativeTarget "DreamCatcher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5DE9748BB7E7CDC38A3F0B48 /* Debug */,
+				04D0F00A0A667BE5C6CD85FC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		062D5AD3AECDAF36CBC1300A /* XCLocalSwiftPackageReference "Packages/SnoreAudio" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SnoreAudio;
+		};
+		7C323AF5C4DC10A91A05DCA8 /* XCLocalSwiftPackageReference "Packages/SnoreCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SnoreCore;
+		};
+		8E58A597BACB36F1145B4C05 /* XCLocalSwiftPackageReference "Packages/SnoreStorage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SnoreStorage;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		02A60EEFD9C6DB5F6563E2C4 /* SnoreStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SnoreStorage;
+		};
+		41CF33D1634ACCA29907CC02 /* SnoreAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SnoreAudio;
+		};
+		A27DE851D407381912852596 /* SnoreCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SnoreCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 9239B73F80B8B84F8B732D2A /* Project object */;
+}

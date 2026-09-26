@@ -1,6 +1,6 @@
-name: SnoreLab
+name: DreamCatcher
 options:
-  bundleIdPrefix: com.snorelaboratory
+  bundleIdPrefix: com.dreamcatcher
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -14,19 +14,19 @@ packages:
     path: Packages/SnoreStorage
 
 targets:
-  SnoreLab:
+  DreamCatcher:
     type: application
     platform: iOS
     sources:
-      - SnoreLab
+      - DreamCatcher
     dependencies:
       - package: SnoreCore
       - package: SnoreAudio
       - package: SnoreStorage
     info:
-      path: SnoreLab/Info.plist
+      path: DreamCatcher/Info.plist
       properties:
-        CFBundleDisplayName: Snore Laboratory
+        CFBundleDisplayName: Dream Catcher
         CFBundleShortVersionString: 0.1.0
         CFBundleVersion: "1"
         # Zero networking and no custom cryptography, so the export-compliance
@@ -43,7 +43,7 @@ targets:
         UIBackgroundModes:
           - audio
         NSMicrophoneUsageDescription: >-
-          Snore Laboratory listens overnight to detect snoring. Audio is
+          Dream Catcher listens overnight to detect snoring. Audio is
           analyzed on your phone; only short snore clips are saved, and audio
           never leaves your device.
     settings:

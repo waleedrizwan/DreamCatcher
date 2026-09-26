@@ -1,4 +1,4 @@
-# Feasibility Review — snore-labratory (three-document review)
+# Feasibility Review — Dream Catcher (three-document review)
 
 Verification performed via web search (sources at end). Verified facts up front: the built-in SoundAnalysis `.version1` classifier and its `snoring` label are real; Apple Dev Forums thread 811582 is real — and it is not alone (iOS 18 threads 757715/765376 report the same failure class); Android 15's 6-hour FGS timeout applies to `dataSync`/`mediaProcessing` only, `microphone` is exempt; the Android 14+ "cannot start a mic FGS from the background" rule is real (and Android 16 removes even the exemptions); `com.google.mediapipe:tasks-audio` exists on Maven (0.10.x, actively maintained) and YAMNet has AudioSet "Snoring"; Play requires an FGS-microphone declaration with a demo video. With that established, here are the real problems.
 
@@ -78,8 +78,8 @@ iOS doc: stats DB backs up to iCloud ("stats are small and back up"). Spec: excl
 Sources: [Apple Dev Forums 811582 — SoundAnalysis fails in background](https://developer.apple.com/forums/thread/811582), [Apple Dev Forums 757715 — iOS 18 SoundAnalysis error when locked](https://developer.apple.com/forums/thread/757715), [Apple Dev Forums 765376 — iOS 18 background permissions error](https://developer.apple.com/forums/thread/765376), [SNClassifySoundRequest](https://developer.apple.com/documentation/soundanalysis/snclassifysoundrequest), [WWDC21 — built-in sound classification](https://developer.apple.com/videos/play/wwdc2021/10036/), [SoundML label list incl. snoring](https://github.com/chrisladd/SoundML), [Android FGS timeouts (dataSync/mediaProcessing only)](https://developer.android.com/develop/background-work/services/fgs/timeout), [Android FGS service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [FGS background-start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start), [Android 14 FGS types required](https://developer.android.com/about/versions/14/changes/fgs-types-required), [Android FGS changes (incl. Android 16)](https://developer.android.com/develop/background-work/services/fgs/changes), [MediaPipe audio classifier for Android](https://ai.google.dev/edge/mediapipe/solutions/audio/audio_classifier/android), [MediaPipe releases](https://github.com/google-ai-edge/mediapipe/releases), [Play Console — FGS declaration & video requirement](https://support.google.com/googleplay/android-developer/answer/13392821?hl=en), [WWDC22 — Optimize Core ML usage (compute units)](https://developer.apple.com/videos/play/wwdc2022/10027/).
 
 ### Critical Files for Implementation
-- /Users/waleedrizwan/code/snore-labratory/spec/SHARED_BEHAVIOR_SPEC.md (must be revised per B2–B4, M1, M4, m4 and declared normative)
-- /Users/waleedrizwan/code/snore-labratory/spec/schema/v1.sql (single DDL both platforms consume verbatim)
-- /Users/waleedrizwan/code/snore-labratory/spec/fixtures/detector/ (golden fixtures — add interruption-gap, speech-veto, and short-bout cases)
-- /Users/waleedrizwan/code/snore-labratory/ios/SnoreLab/Detection/CoreMLSnoreClassifier.swift (promoted from fallback to primary iOS classifier)
-- /Users/waleedrizwan/code/snore-labratory/android/app/src/main/kotlin/session/SnoreSessionService.kt (FGS lifecycle, wake lock, heartbeat, START_NOT_STICKY)
+- spec/SHARED_BEHAVIOR_SPEC.md (must be revised per B2–B4, M1, M4, m4 and declared normative)
+- spec/schema/v1.sql (single DDL both platforms consume verbatim)
+- spec/fixtures/detector/ (golden fixtures — add interruption-gap, speech-veto, and short-bout cases)
+- ios/DreamCatcher/Detection/CoreMLSnoreClassifier.swift (promoted from fallback to primary iOS classifier)
+- android/app/src/main/kotlin/session/SnoreSessionService.kt (FGS lifecycle, wake lock, heartbeat, START_NOT_STICKY)

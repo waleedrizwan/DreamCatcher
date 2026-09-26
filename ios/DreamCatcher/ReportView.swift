@@ -26,7 +26,7 @@ struct ReportView: View {
                 intensitySection(session)
                 clipsSection
                 Section {
-                    Text("Snore Laboratory can't tell who — or what — is snoring.")
+                    Text("Dream Catcher can't tell who — or what — is snoring.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(medicalDisclaimer)

@@ -1,8 +1,8 @@
-# Privacy Policy — Snore Laboratory
+# Privacy Policy — Dream Catcher
 
 _Last updated: 20 August 2026_
 
-Snore Laboratory is a snore tracker that runs entirely on your iPhone.
+Dream Catcher is a snore tracker that runs entirely on your iPhone.
 
 ## The short version
 
@@ -50,11 +50,11 @@ and are governed by Apple's privacy policy.
 
 ## Children
 
-Snore Laboratory is not directed at children and collects no data from anyone.
+Dream Catcher is not directed at children and collects no data from anyone.
 
 ## Not a medical device
 
-Snore Laboratory is not a medical device. It does not diagnose, treat, or
+Dream Catcher is not a medical device. It does not diagnose, treat, or
 monitor any medical condition, including sleep apnea. If you are concerned
 about your sleep or breathing, talk to a physician.
 

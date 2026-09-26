@@ -1,4 +1,4 @@
--- SNORE LABORATORY — normative schema v1
+-- DREAM CATCHER — normative schema v1
 -- This file is the ONLY DDL. iOS (GRDB) executes it verbatim; Android Room
 -- entities are written to match it and CI diffs Room's exported schema
 -- against this file. See spec/SHARED_BEHAVIOR_SPEC.md §3.

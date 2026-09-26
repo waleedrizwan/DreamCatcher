@@ -13,12 +13,12 @@ struct OnboardingView: View {
                 pageView(
                     symbol: "moon.zzz.fill", tint: .indigo,
                     title: "Sleep. It listens.",
-                    body: "Put your phone on the nightstand, plugged in, and tap Start. Overnight, Snore Laboratory listens for snoring and builds your morning report — when it happened, how loud it was, with short clips you can play back.\n\nYour phone's orange microphone indicator stays on all night. That's iOS telling you the mic is live — it's supposed to be there.")
+                    body: "Put your phone on the nightstand, plugged in, and tap Start. Overnight, Dream Catcher listens for snoring and builds your morning report — when it happened, how loud it was, with short clips you can play back.\n\nYour phone's orange microphone indicator stays on all night. That's iOS telling you the mic is live — it's supposed to be there.")
                     .tag(0)
                 pageView(
                     symbol: "person.2.fill", tint: .teal,
                     title: "One mic, one room",
-                    body: "The microphone hears the whole room. Snore Laboratory can't tell who — or what — is snoring: a partner, a pet, or a rumbling fan can end up in your report.\n\nFor the cleanest nights, place the phone on your side of the bed, microphone toward you.")
+                    body: "The microphone hears the whole room. Dream Catcher can't tell who — or what — is snoring: a partner, a pet, or a rumbling fan can end up in your report.\n\nFor the cleanest nights, place the phone on your side of the bed, microphone toward you.")
                     .tag(1)
                 pageView(
                     symbol: "lock.shield.fill", tint: .green,

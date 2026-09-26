@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Snore Laboratory</string>
+	<string>Dream Catcher</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,7 +25,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.healthcare-fitness</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Snore Laboratory listens overnight to detect snoring. Audio is analyzed on your phone; only short snore clips are saved, and audio never leaves your device.</string>
+	<string>Dream Catcher listens overnight to detect snoring. Audio is analyzed on your phone; only short snore clips are saved, and audio never leaves your device.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

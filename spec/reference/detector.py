@@ -1,4 +1,4 @@
-"""Snore Laboratory — reference implementation of the shared detector.
+"""Dream Catcher — reference implementation of the shared detector.
 
 This is the normative executable form of spec/SHARED_BEHAVIOR_SPEC.md §1.
 It exists to (a) generate/validate the golden fixtures both native

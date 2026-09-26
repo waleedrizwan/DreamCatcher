@@ -4,7 +4,7 @@ import SnoreAudio
 import SnoreStorage
 
 @main
-struct SnoreLabApp: App {
+struct DreamCatcherApp: App {
     @State private var deps = AppDependencies.live()
 
     var body: some Scene {
@@ -20,6 +20,9 @@ struct SnoreLabApp: App {
 final class AppDependencies {
     let repository: SessionRepository
     let recorder: RecordingSessionActor
+    /// Created at launch so it is the notification delegate before a tap on
+    /// a bedtime reminder is delivered.
+    let bedtimeReminder = BedtimeReminder()
     let clipsRoot: URL
     let spikeLogDir: URL
     /// Where debug score logs land; also what Settings offers to share.
@@ -115,16 +118,37 @@ final class AppDependencies {
 }
 
 struct RootView: View {
+    enum Tab { case sleep, history, settings }
+
+    @Environment(AppDependencies.self) private var deps
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasOnboarded") private var hasOnboarded = false
+    @State private var tab = Tab.sleep
 
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             HomeView()
                 .tabItem { Label("Sleep", systemImage: "moon.zzz.fill") }
+                .tag(Tab.sleep)
             HistoryView()
                 .tabItem { Label("History", systemImage: "calendar") }
+                .tag(Tab.history)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(Tab.settings)
+        }
+        // A bedtime-reminder tap lands on the Sleep tab, where HomeView
+        // starts the session.
+        .onChange(of: deps.bedtimeReminder.startRequested, initial: true) { _, requested in
+            if requested { tab = .sleep }
+        }
+        // Keep the next two weeks of reminders queued.
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                let recording = await deps.recorder.snapshot().isRecording
+                await deps.bedtimeReminder.reschedule(isRecording: recording)
+            }
         }
         .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
             OnboardingView { hasOnboarded = true }
@@ -133,7 +157,7 @@ struct RootView: View {
 }
 
 let medicalDisclaimer = """
-Snore Laboratory is not a medical device. It does not diagnose, treat, or \
+Dream Catcher is not a medical device. It does not diagnose, treat, or \
 monitor any medical condition, including sleep apnea. If you are concerned \
 about your sleep or breathing, talk to a physician.
 """

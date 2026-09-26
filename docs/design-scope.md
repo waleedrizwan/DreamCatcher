@@ -2,7 +2,7 @@ The directory doesn't exist yet — fully greenfield, as expected. All three des
 
 ---
 
-# SNORE LABORATORY — SCOPE & BUILD ORDER REVIEW
+# DREAM CATCHER — SCOPE & BUILD ORDER REVIEW
 
 ## 0. The most important finding: the three documents describe three different detectors
 
@@ -81,7 +81,7 @@ Not over-engineered, keep as designed: the `event` table (it *is* the crash-reco
 3. **Permission revoked mid-night.** On both platforms, revoking mic permission kills the app process outright — which means this path *is* the crash-recovery path and needs an explicit test. Android additionally has the **Quick Settings mic toggle (Android 12+)**, which feeds silence without any error: the Android doc's ">2 s of pure digital silence" heuristic covers it, but that heuristic must be promoted into the shared spec's gap semantics, and Android 11+ auto-revoke of unused-app permissions deserves an onboarding note.
 4. **Android input-device pinning.** iOS forces the built-in mic; the Android doc never does. A plugged wired headset or USB-C dongle mic becomes the default input and records from inside a pocket or drawer. Add `AudioRecord.setPreferredDevice(TYPE_BUILTIN_MIC)` plus a device-callback re-assert, mirroring iOS §2.4.
 5. **Mic-covered / face-down / under-pillow detection.** No pre-flight signal check anywhere. Cheap fix: during the first 60 s, if RMS is pinned near −100 dBFS or the noise floor is implausibly low, show a lock-screen-visible notification / next-morning banner: "Your microphone may have been covered." Costs an evening; saves the one-star "it recorded nothing" reviews.
-6. **Partner/pet snoring caveat.** All three docs mention it internally; none puts it in the product. Add one line of report UI copy to the spec ("Snore Laboratory can't tell who — or what — is snoring") and an onboarding mention. Also add a partner-snoring audio file to the test corpus as a *positive* (it will detect; the product just needs honest framing).
+6. **Partner/pet snoring caveat.** All three docs mention it internally; none puts it in the product. Add one line of report UI copy to the spec ("Dream Catcher can't tell who — or what — is snoring") and an onboarding mention. Also add a partner-snoring audio file to the test corpus as a *positive* (it will detect; the product just needs honest framing).
 7. **Morning alarm interplay.** The user's alarm rings on the same phone: iOS fires an interruption (covered mechanically), but the alarm and subsequent snoozing/fumbling happen at max proximity — add "phone's own alarm at 7 a.m." to the soak-test matrix and confirm the classifier doesn't score alarm audio as snoring; ensure the session survives to a manual Stop.
 8. **Gap accounting in metrics.** Once gaps exist (see §0), decide whether "% of night" uses the full span or span-minus-gaps as denominator. Unspecified = platform divergence. (Recommend: full span, gaps shown visually; simplest and honest.)
 9. **Low Power Mode / Battery Saver in the test matrix.** Neither should kill a mic FGS or an active audio session, but both alter scheduling — soak-test under them explicitly rather than asserting from documentation.
@@ -107,8 +107,8 @@ Conventional unit tests round it out per platform: migrations, ring-buffer wrapa
 ---
 
 ### Critical Files for Implementation
-- /Users/waleedrizwan/code/snore-labratory/spec/SHARED_BEHAVIOR_SPEC.md (v1.1 with the §0 reconciliations — the single source of truth, frozen in M0)
-- /Users/waleedrizwan/code/snore-labratory/spec/fixtures/detector/basic_bout.json (plus sibling fixtures — the cross-platform consistency mechanism)
-- /Users/waleedrizwan/code/snore-labratory/spec/schema/v1.sql (shared DDL copied verbatim into both apps)
-- /Users/waleedrizwan/code/snore-labratory/ios/Packages/SnoreCore/Sources/SnoreCore/SnoreDetector.swift (lead-platform pure detector; first real code after the spike)
-- /Users/waleedrizwan/code/snore-labratory/android/core/detection/src/main/kotlin/SnoreDetector.kt (port target; green on the same fixtures before any Android UI work)
+- spec/SHARED_BEHAVIOR_SPEC.md (v1.1 with the §0 reconciliations — the single source of truth, frozen in M0)
+- spec/fixtures/detector/basic_bout.json (plus sibling fixtures — the cross-platform consistency mechanism)
+- spec/schema/v1.sql (shared DDL copied verbatim into both apps)
+- ios/Packages/SnoreCore/Sources/SnoreCore/SnoreDetector.swift (lead-platform pure detector; first real code after the spike)
+- android/core/detection/src/main/kotlin/SnoreDetector.kt (port target; green on the same fixtures before any Android UI work)
