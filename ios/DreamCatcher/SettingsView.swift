@@ -7,6 +7,9 @@ struct SettingsView: View {
     @Environment(AppDependencies.self) private var deps
     @AppStorage("sensitivity") private var sensitivityRaw = Sensitivity.medium.rawValue
     @State private var confirmingDelete = false
+    @AppStorage(BedtimeReminder.enabledKey) private var reminderOn = false
+    @AppStorage(BedtimeReminder.minutesKey) private var reminderMinutes = BedtimeReminder.defaultMinutes
+    @State private var notificationsDenied = false
     #if DEBUG
     @AppStorage(scoreLoggingKey) private var scoreLogging = false
     @State private var scoreLogs: [URL] = []
@@ -24,6 +27,32 @@ struct SettingsView: View {
                     Text("Higher sensitivity detects quieter snoring but may pick up more room noise. Takes effect next session.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+                Section("Bedtime reminder") {
+                    Toggle("Remind me to start", isOn: $reminderOn)
+                    if reminderOn {
+                        DatePicker("Time", selection: reminderTime,
+                                   displayedComponents: .hourAndMinute)
+                    }
+                    Text(notificationsDenied
+                         ? "Notifications are turned off for Dream Catcher. Allow them in the iPhone Settings app → Notifications."
+                         : "A nightly notification. Tap it and the session starts. iOS doesn't let apps switch the microphone on by themselves, so this is the closest to automatic.")
+                        .font(.caption)
+                        .foregroundStyle(notificationsDenied ? .orange : .secondary)
+                }
+                .onChange(of: reminderOn) { _, on in
+                    Task {
+                        if on, !(await deps.bedtimeReminder.requestAuthorization()) {
+                            notificationsDenied = true
+                            reminderOn = false
+                            return
+                        }
+                        notificationsDenied = false
+                        await rescheduleReminder()
+                    }
+                }
+                .onChange(of: reminderMinutes) { _, _ in
+                    Task { await rescheduleReminder() }
                 }
                 Section("Privacy") {
                     Text("Everything stays on this phone: no accounts, no cloud, zero network calls. Only short clips of detected snoring are saved — never full-night audio — and audio is excluded from phone backups.")
@@ -78,6 +107,24 @@ struct SettingsView: View {
                 Button("Delete everything", role: .destructive) { deleteAll() }
             }
         }
+    }
+
+    private var reminderTime: Binding<Date> {
+        Binding(
+            get: {
+                Calendar.current.date(bySettingHour: reminderMinutes / 60,
+                                      minute: reminderMinutes % 60, second: 0,
+                                      of: Date()) ?? Date()
+            },
+            set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                reminderMinutes = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+            })
+    }
+
+    private func rescheduleReminder() async {
+        let recording = await deps.recorder.snapshot().isRecording
+        await deps.bedtimeReminder.reschedule(isRecording: recording)
     }
 
     private func deleteAll() {

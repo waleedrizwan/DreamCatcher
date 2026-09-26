@@ -423,7 +423,7 @@ public actor RecordingSessionActor {
     private func resumeCapture(reason: GapRecord.Reason) {
         guard attemptResume(reason: reason) == false else { return }
         guard resumeRetryTask == nil else { return }
-        let assertion = BackgroundAssertion(name: "snorelab.resume")
+        let assertion = BackgroundAssertion(name: "dreamcatcher.resume")
         resumeRetryTask = Task { [weak self] in
             defer { assertion.end() }
             for delay in [0.5, 2.0, 8.0, 20.0] {

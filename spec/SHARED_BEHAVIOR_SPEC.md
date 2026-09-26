@@ -1,4 +1,4 @@
-# SNORE LABORATORY — SHARED BEHAVIOR SPEC v1.1
+# DREAM CATCHER — SHARED BEHAVIOR SPEC v1.1
 
 This document is **normative** for everything downstream of `ClassifierFrame`: the detection state machine, metrics, intensity model, timeline binning, clip policy, data schema, lifecycle rules, and report semantics. Both platform implementations (Swift, Kotlin) MUST behave identically here, proven by the golden fixtures in `spec/fixtures/detector/`. Everything upstream (audio session config, foreground-service rules, interruption plumbing) is platform-discretionary and documented in `docs/design-ios.md` / `docs/design-android.md`.
 
@@ -274,7 +274,7 @@ Tables: `session`, `episode`, `event`, `clip`, `gap` — see the DDL for columns
 4. **Intensity breakdown**: three-segment bar of light/moderate/loud as % of snore time + absolute minutes.
 5. **Clips**: one row per clip sorted by time — local time, 12 s, bucket chip, "+NN dB above room", play/scrub, per-clip delete. Footer: "Clips are kept for 90 days on this device."
 6. **Zero-snore state**: "No snoring detected", flat timeline, no clips section.
-7. **Caveat copy** (once per report, small print): "Snore Laboratory can't tell who — or what — is snoring."
+7. **Caveat copy** (once per report, small print): "Dream Catcher can't tell who — or what — is snoring."
 8. **Footer**: medical disclaimer (§6).
 
 Every number is recomputable from `episode`/`event` rows; rollups are a cache (debug assert).
@@ -292,9 +292,9 @@ Every number is recomputable from `episode`/`event` rows; rollups are a cache (d
 - **Stored on device**: SQLite metrics DB; AAC clips only for confirmed episodes (≤ 30 × 12 s per night). **Never stored**: full-night audio (raw PCM exists only in the 30 s in-memory ring buffer).
 - **Network**: MVP makes **zero network calls** — no accounts, no analytics or crash SDKs, no cloud. iOS ships Privacy Nutrition Label "Data Not Collected" and a `PrivacyInfo.xcprivacy` with no tracking; Android's Data Safety form declares no collection, no sharing. (Do not claim "no networking entitlement" — that concept doesn't exist on iOS.)
 - **OS backups** (decided): the metrics DB **is included** in normal OS backups (history survives a new phone); the clips directory is **excluded** (iOS `isExcludedFromBackup = true`; Android `dataExtractionRules` + `fullBackupContent` excluding `clips/`). Privacy copy everywhere: "**Audio never leaves your device.**"
-- **Mic indicators**: the OS indicator (iOS orange dot, Android green pill) is visible all night — disclosed in onboarding: "Your phone's microphone indicator stays on while Snore Laboratory listens. Audio is analyzed on this phone, and only short clips of detected snoring are saved."
-- **Permission strings**: iOS `NSMicrophoneUsageDescription` = "Snore Laboratory listens overnight to detect snoring. Audio is analyzed on your phone; only short snore clips are saved, and audio never leaves your device." Android: runtime `RECORD_AUDIO` with an in-app rationale screen first; `POST_NOTIFICATIONS` for the ongoing-session notification (degrade gracefully if denied).
-- **Disclaimer** (onboarding · report footer · settings · both store listings): "Snore Laboratory is not a medical device. It does not diagnose, treat, or monitor any medical condition, including sleep apnea. If you are concerned about your sleep or breathing, talk to a physician." Never use "apnea"/"diagnose" anywhere else in UI or store copy.
+- **Mic indicators**: the OS indicator (iOS orange dot, Android green pill) is visible all night — disclosed in onboarding: "Your phone's microphone indicator stays on while Dream Catcher listens. Audio is analyzed on this phone, and only short clips of detected snoring are saved."
+- **Permission strings**: iOS `NSMicrophoneUsageDescription` = "Dream Catcher listens overnight to detect snoring. Audio is analyzed on your phone; only short snore clips are saved, and audio never leaves your device." Android: runtime `RECORD_AUDIO` with an in-app rationale screen first; `POST_NOTIFICATIONS` for the ongoing-session notification (degrade gracefully if denied).
+- **Disclaimer** (onboarding · report footer · settings · both store listings): "Dream Catcher is not a medical device. It does not diagnose, treat, or monitor any medical condition, including sleep apnea. If you are concerned about your sleep or breathing, talk to a physician." Never use "apnea"/"diagnose" anywhere else in UI or store copy.
 - **Deletion**: per-night delete and "Delete all data" hard-delete rows and audio files immediately.
 
 ---

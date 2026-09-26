@@ -1,4 +1,4 @@
-# App Store submission — Snore Laboratory (iOS)
+# App Store submission — Dream Catcher (iOS)
 
 Everything App Store Connect will ask for, plus the repo-side settings that
 back it. Drafted at M6; the account-side steps can only be done by the
@@ -8,8 +8,8 @@ account holder.
 
 | Field | Value |
 | --- | --- |
-| Bundle ID | `com.snorelaboratory.SnoreLab` |
-| Display name | Snore Laboratory |
+| Bundle ID | `com.dreamcatcher.DreamCatcher` |
+| Display name | Dream Catcher |
 | Category | Health & Fitness (`public.app-category.healthcare-fitness`) |
 | Age rating | 4+ (no objectionable content; see the medical note below) |
 | Deployment target | iOS 17.0, iPhone only |
@@ -30,7 +30,7 @@ account holder.
 
 **Description**
 
-> Snore Laboratory turns your iPhone into a nightstand snore tracker. Tap
+> Dream Catcher turns your iPhone into a nightstand snore tracker. Tap
 > Start, put the phone down, and sleep. Overnight it listens and detects
 > snoring right on the device. In the morning you get a report of your night:
 > total snore time, how much of the night it covered, a timeline of when it
@@ -52,11 +52,11 @@ account holder.
 > • Low, Medium, and High sensitivity settings
 >
 > **Honest about what it can't do.** A microphone hears the whole room, so
-> Snore Laboratory can't tell who — or what — is snoring; a partner, a pet, or
+> Dream Catcher can't tell who — or what — is snoring; a partner, a pet, or
 > a fan can end up in your report. Loudness is shown relative to your own
 > room's quiet level, not in calibrated decibels.
 >
-> Snore Laboratory is not a medical device. It does not diagnose, treat, or
+> Dream Catcher is not a medical device. It does not diagnose, treat, or
 > monitor any medical condition, including sleep apnea. If you are concerned
 > about your sleep or breathing, talk to a physician.
 
@@ -70,7 +70,7 @@ approved wording.
 
 ## Review notes (paste into App Store Connect)
 
-> Snore Laboratory records audio overnight to detect snoring, which is why it
+> Dream Catcher records audio overnight to detect snoring, which is why it
 > declares the `audio` background mode: the microphone must keep running while
 > the screen is locked for the app to do its only job. Nothing is transmitted —
 > the app makes no network calls whatsoever, and all detection runs on-device.
@@ -99,7 +99,7 @@ Capture from a simulator seeded with a realistic night:
 
 Repo-side (done unless noted):
 
-- [x] App icon (1024pt) in `ios/SnoreLab/Assets.xcassets/AppIcon.appiconset`
+- [x] App icon (1024pt) in `ios/DreamCatcher/Assets.xcassets/AppIcon.appiconset`
 - [x] Accent + launch background colors; `UILaunchScreen` uses `LaunchBackground`
 - [x] `ITSAppUsesNonExemptEncryption = false`
 - [x] `PrivacyInfo.xcprivacy` with empty collected-data types
@@ -112,7 +112,7 @@ Repo-side (done unless noted):
 Account-side (the account holder must do these):
 
 - [ ] Apple Developer Program membership ($99/yr)
-- [ ] Register bundle ID `com.snorelaboratory.SnoreLab`, create the App Store
+- [ ] Register bundle ID `com.dreamcatcher.DreamCatcher`, create the App Store
       Connect record
 - [ ] **Privacy policy URL** — required even for a local-only app with no
       accounts. Host the text in `docs/privacy-policy.md`.

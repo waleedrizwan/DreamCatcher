@@ -33,11 +33,21 @@ struct HomeView: View {
                     .padding(.horizontal)
             }
             .padding()
-            .navigationTitle("Snore Laboratory")
+            .navigationTitle("Dream Catcher")
             .task {
                 while !Task.isCancelled {
                     live = await deps.recorder.snapshot()
                     try? await Task.sleep(for: .seconds(1))
+                }
+            }
+            // Tapped the bedtime reminder: start as if the button was pressed
+            // (mic permission + pre-flight warnings still apply).
+            .onChange(of: deps.bedtimeReminder.startRequested, initial: true) { _, requested in
+                guard requested else { return }
+                deps.bedtimeReminder.startRequested = false
+                Task {
+                    guard !(await deps.recorder.snapshot().isRecording) else { return }
+                    await startTapped()
                 }
             }
             .navigationDestination(item: $reportSessionId) { sessionId in
@@ -169,6 +179,8 @@ struct HomeView: View {
             let sensitivity = Sensitivity(rawValue: sensitivityRaw) ?? .medium
             try await deps.recorder.start(sensitivity: sensitivity)
             live = await deps.recorder.snapshot()
+            // Tonight is covered: drop a reminder that would fire mid-session.
+            await deps.bedtimeReminder.reschedule(isRecording: true)
         } catch {
             startError = error.localizedDescription
         }

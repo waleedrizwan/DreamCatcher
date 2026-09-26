@@ -16,7 +16,7 @@ public final class SoundAnalysisClassifier: NSObject, SnoreClassifying,
     private var analyzer: SNAudioStreamAnalyzer?
     private var request: SNClassifySoundRequest?
     private var handler: (@Sendable (ClassifierScores) -> Void)?
-    private let queue = DispatchQueue(label: "snorelab.soundanalysis")
+    private let queue = DispatchQueue(label: "dreamcatcher.soundanalysis")
     /// Last error from the analysis stream (Spike 0 reads this). Written on
     /// the analyzer's callback thread, read from actors: an `Error?` is a
     /// reference-counted box, so it is lock-guarded.

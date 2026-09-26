@@ -28,7 +28,7 @@
     "modelParameters" : [
 
     ],
-    "author" : "Google (TensorFlow Model Garden, Apache 2.0); converted for Snore Laboratory",
+    "author" : "Google (TensorFlow Model Garden, Apache 2.0); converted for Dream Catcher",
     "specificationVersion" : 8,
     "storagePrecision" : "Float32",
     "license" : "Apache License 2.0",

@@ -1,4 +1,4 @@
-# Snore Laboratory
+# Dream Catcher
 
 Native iOS + Android snore tracking app. Put your phone on the nightstand, tap Start, sleep. Overnight it records via the microphone, detects snoring **on-device** with ML, and in the morning shows a report of when and how much you snored, with playback of the worst episodes.
 

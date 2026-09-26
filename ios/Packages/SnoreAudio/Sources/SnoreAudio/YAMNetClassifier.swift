@@ -31,7 +31,7 @@ public final class YAMNetClassifier: SnoreClassifying, @unchecked Sendable {
         case unexpectedOutputShape([Int])
     }
 
-    private let queue = DispatchQueue(label: "snorelab.yamnet")
+    private let queue = DispatchQueue(label: "dreamcatcher.yamnet")
     /// Debug tuning log (nil in normal use); see `ScoreLog`.
     private let scoreLog: ScoreLog?
     private var loggedIndices: [Int] = []

@@ -66,7 +66,7 @@ mlmodel = ct.models.MLModel(spec, weights_dir=mlmodel.weights_dir,
                             compute_units=ct.ComputeUnit.CPU_ONLY)
 names = [row[2] for row in list(csv.reader(open('src/yamnet_class_map.csv')))[1:]]
 mlmodel.short_description = 'YAMNet (AudioSet, 521 classes). Input 0.975 s of 16 kHz mono PCM; sigmoid class scores.'
-mlmodel.author = 'Google (TensorFlow Model Garden, Apache 2.0); converted for Snore Laboratory'
+mlmodel.author = 'Google (TensorFlow Model Garden, Apache 2.0); converted for Dream Catcher'
 mlmodel.license = 'Apache License 2.0'
 mlmodel.version = '1'
 mlmodel.user_defined_metadata['class_map'] = ','.join(names)
