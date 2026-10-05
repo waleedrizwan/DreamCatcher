@@ -33,9 +33,19 @@ cough, breathing, throat clearing, chewing, biting), and `clips/`.
 - Timestamps come from sample counts anchored at each capture start; a gap between
   files (recorder restarted) flushes the detector and re-anchors (spec §0.2).
 
-Two deliberate differences from the phone: clips are centred on each episode's
-loudest event (the phone can only use the confirming one, from a 30 s ring), and
-gasp candidates are listed for listening, not counted.
+Deliberate differences from the phone:
+
+- **Hum removal** (`denoise.remove_hum`, on by default, `--keep-hum` to skip) runs
+  before levels, YAMNet and clips. A bedroom has several hums at once (60 Hz mains,
+  a fan or motor, the USB chip's own lines at multiples of 62.5 Hz, small whines), so
+  `find_tones` finds every line that holds its pitch for a whole file (machines do,
+  snoring never does), pools the ones that recur across the night, and notches them.
+  It took YAMNet from 200 to 446 recognised snore frames on night 1, with no false
+  snoring on awake daytime audio.
+- **Report**: a line graph of snores per minute with each bout shaded; click anywhere
+  to hear that moment. Each bout gets one clip covering the whole bout (hiss and hum
+  removed, turned up; `_original.wav` alongside), about 80 MB a night.
+- Gasp candidates are listed for listening, not counted.
 
 ## The Pi
 

@@ -86,6 +86,12 @@ FAINT_MAX = 10
 # a bout needs AI_MIN_SOUNDS sounds, so one isolated sound never counts.
 AI_MIN_SOUNDS = 2
 
+# Interactive report: each bout gets one clip covering the whole bout (plus a
+# little either side), so clicking anywhere in it on the graph plays from
+# exactly that moment.
+BOUT_PAD_MS = 2_000
+BOUT_CLIP_CAP = 200
+
 CLIP_MS, CLIP_PREROLL_MS, CLIP_CAP = 12_000, 3_000, 30
 GASP_CLIP_MS, GASP_PREROLL_MS = 8_000, 3_000
 BIN_MS = 300_000
@@ -225,7 +231,7 @@ def levels(windows: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def segment_frames(seg: Segment, model: YAMNet, clean_levels: bool, profiles: dict,
-                   dehum: bool = True):
+                   dehum: bool = True, tones: dict | None = None):
     """Yield (t_ms, rms, peak, raw_rms, scores[k, len(WATCH)]) per chunk, in order.
 
     YAMNet always sees raw audio (as on the phone). With clean_levels the
@@ -237,8 +243,10 @@ def segment_frames(seg: Segment, model: YAMNet, clean_levels: bool, profiles: di
     tail_start = 0                      # segment sample index of tail[0]
     for c in seg.chunks:
         new = pcm(c).astype(np.float32) / 32768.0
-        if dehum:   # mains hum + sub-audio jumps from the USB mic (denoise.remove_hum)
-            new = denoise.remove_hum(new).astype(np.float32)
+        if dehum:   # every steady tone (this file's + the night's) + 60 Hz family + sub-audio jumps
+            if c.path not in tones:
+                tones[c.path] = denoise.find_tones(new)
+            new = denoise.remove_hum(new, tones=tones[c.path]).astype(np.float32)
         profiles[c.path] = denoise.noise_profile(new.astype(np.float64))
         buf = np.concatenate([tail, new])
         cbuf = (np.concatenate([ctail, denoise.denoise(new.astype(np.float64), profiles[c.path]).astype(np.float32)])
@@ -267,6 +275,7 @@ def analyze(night_dir: Path, out_dir: Path, clean_levels: bool = False,
     model = YAMNet()
     params = DetectorParams.with_overrides(overrides or {})
     profiles: dict = {}
+    tones: dict = {}      # chunk path -> steady tones found in it (denoise.find_tones)
     det = SnoreDetector(params)
     episodes, discarded = [], 0
     rows = []          # frames.csv
@@ -280,10 +289,15 @@ def analyze(night_dir: Path, out_dir: Path, clean_levels: bool = False,
             elif o["type"] == "EpisodeDiscarded":
                 discarded += 1
 
+    if dehum:   # pass 1: steady tones per file, then add the night-wide ones to each file
+        per_file = {c.path: denoise.find_tones(pcm(c)) for seg in segments for c in seg.chunks}
+        common = denoise.night_tones(list(per_file.values()))
+        tones.update({k: denoise.merge_tones(v, common) for k, v in per_file.items()})
+
     for si, seg in enumerate(segments):
         if si:
             absorb(det.flush())         # capture gap (spec §0.2): flush, re-anchor
-        for t_ms, rms, peak, raw_rms, sc in segment_frames(seg, model, clean_levels, profiles, dehum):
+        for t_ms, rms, peak, raw_rms, sc in segment_frames(seg, model, clean_levels, profiles, dehum, tones):
             for k in range(len(t_ms)):
                 f = Frame(int(t_ms[k]), float(rms[k]), float(peak[k]),
                           float(sc[k, 0]), float(sc[k, 1]))
@@ -326,7 +340,8 @@ def analyze(night_dir: Path, out_dir: Path, clean_levels: bool = False,
         # so a clip full of snoring is not mistaken for noise)
         chunk = next((c for c in seg.chunks if c.seg_offset <= max(0, s0) < c.seg_offset + c.n), seg.chunks[0])
         x = audio.astype(np.float64) / 32768
-        clean = denoise.denoise(denoise.remove_hum(x) if dehum else x, profiles.get(chunk.path))
+        clean = denoise.denoise(denoise.remove_hum(x, tones=tones.get(chunk.path)) if dehum else x,
+                                profiles.get(chunk.path))
         denoise.write_wav(str(clip_dir / name), denoise.boost(clean))
         return f"clips/{name}"
 
@@ -335,22 +350,25 @@ def analyze(night_dir: Path, out_dir: Path, clean_levels: bool = False,
         bouts, isolated = detect_bouts(rows, params)
         counted_ms = sum(b["endMs"] - b["startMs"] for b in bouts)
         intervals = [(b["startMs"], b["endMs"], "snore") for b in bouts]
+        sound_starts = [t for b in bouts for t in b["soundStarts"]]
         for i, b in enumerate(bouts):
-            clip = None
-            if i < CLIP_CAP:   # centre on the sound the AI was surest about
-                t0 = b["peakMs"] - CLIP_PREROLL_MS
-                clip = write_clip(f"snore_{local(t0, '%H-%M-%S')}.wav", t0, CLIP_MS)
-            ep_out.append({**b, "clip": clip})
+            t0, clip = b["startMs"] - BOUT_PAD_MS, None
+            if i < BOUT_CLIP_CAP:
+                clip = write_clip(f"snore_{local(b['startMs'], '%H-%M-%S')}.wav", t0,
+                                  b["endMs"] - b["startMs"] + 2 * BOUT_PAD_MS)
+            ep_out.append({**b, "clip": clip, "clipStartMs": t0})
     else:
         counted_ms = snore_ms
         intervals = [(ev.start_ms, ev.end_ms, bucket(ev)) for ev in events]
+        sound_starts = [ev.start_ms for ev in events]
         for i, epi in enumerate(episodes):
-            clip = None
-            if i < CLIP_CAP:   # offline we have all the audio: centre on the loudest event
-                t0 = epi.peak.start_ms - CLIP_PREROLL_MS
-                clip = write_clip(f"snore_{local(t0, '%H-%M-%S')}.wav", t0, CLIP_MS)
+            t0, clip = epi.start_ms - BOUT_PAD_MS, None
+            if i < BOUT_CLIP_CAP:
+                clip = write_clip(f"snore_{local(epi.start_ms, '%H-%M-%S')}.wav", t0,
+                                  epi.end_ms - epi.start_ms + 2 * BOUT_PAD_MS)
             ep_out.append({
                 "startMs": epi.start_ms, "endMs": epi.end_ms, "events": len(epi.events),
+                "sounds": len(epi.events), "peakMs": epi.peak.start_ms, "clipStartMs": t0,
                 "snoreMs": epi.snore_ms, "bucket": epi.bucket,
                 "aboveRoomDb": round(rel(epi.peak), 1), "peakDbfs": round(epi.peak.peak_dbfs, 1),
                 "clip": clip,
@@ -365,6 +383,7 @@ def analyze(night_dir: Path, out_dir: Path, clean_levels: bool = False,
     for g in gasps:
         t0 = g["tMs"] - GASP_PREROLL_MS
         g["clip"] = write_clip(f"gasp_{local(g['tMs'], '%H-%M-%S')}.wav", t0, GASP_CLIP_MS)
+        g["clipStartMs"] = t0
 
     with open(out_dir / "frames.csv", "w", newline="") as fh:
         w = csv.writer(fh)
@@ -399,7 +418,12 @@ def analyze(night_dir: Path, out_dir: Path, clean_levels: bool = False,
         "model": "YAMNet Core ML (ios bundle), CPU", "detectorParams": dataclasses.asdict(params),
         "levelsFrom": "hiss-removed audio" if clean_levels else "raw audio",
         "humRemoved": dehum,
+        "tonesRemovedPerFile": {Path(k).name: [round(t, 2) for t in v[:12]] for k, v in tones.items()},
         "timeline": timeline(session_start, session_end, intervals),
+        # counted snore sounds starting in each minute of the night (the line graph)
+        "snoresPerMinute": np.bincount(
+            [(t - session_start) // 60_000 for t in sound_starts if session_start <= t < session_end],
+            minlength=-(-(session_end - session_start) // 60_000)).tolist(),
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
     (out_dir / "report.html").write_text(render(summary))
@@ -480,6 +504,7 @@ def detect_bouts(rows, params) -> tuple[list[dict], list[dict]]:
         top = max(g, key=lambda ev: ev[2])
         if len(g) >= AI_MIN_SOUNDS:
             bouts.append({"startMs": int(g[0][0]), "endMs": int(g[-1][1]), "sounds": len(g),
+                          "soundStarts": [int(ev[0]) for ev in g],
                           "soundMs": int(sum(ev[1] - ev[0] for ev in g)),
                           "maxScore": round(top[2], 2), "peakMs": int(top[3])})
         else:
@@ -512,7 +537,7 @@ def render(s: dict) -> str:
     start, end = s["startMs"], s["endMs"]
     span = max(1, end - start)
     night = dt.date.fromisoformat(s["night"])
-    W, H = 1000, 100
+    W, H = 1000, 120
 
     def x(t):
         return (t - start) / span * W
@@ -520,23 +545,31 @@ def render(s: dict) -> str:
     def pct(t):
         return f"{(t - start) / span * 100:.2f}%"
 
-    # Bars live in a stretched SVG (x follows the screen width, height is fixed);
-    # labels and markers are HTML positioned by percent so they keep their size
-    # on a phone instead of shrinking with the drawing.
-    svg = [f'<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="img" aria-label="Snoring per 5 minutes across the night">']
+    ai = s.get("mode") == "ai"
+    bouts = s["episodes"]
+    per_min = s.get("snoresPerMinute") or []
+    ymax = max(4, max(per_min, default=0))
+
+    # The chart lives in a stretched SVG (x follows the screen width, height is
+    # fixed); labels, markers, cursor and playhead are HTML positioned by
+    # percent so they keep their size on a phone.
+    svg = [f'<svg class="chart" viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="img" '
+           f'aria-label="Snores per minute across the night">']
     for g in s["gaps"]:
-        svg.append(f'<rect class="gap" x="{x(g["fromMs"]):.1f}" y="0" width="{max(2, x(g["toMs"]) - x(g["fromMs"])):.1f}" height="{H}"><title>No recording {local(g["fromMs"], "%H:%M")}–{local(g["toMs"], "%H:%M")}</title></rect>')
-    bw = BIN_MS / span * W
-    for b in s["timeline"]:
-        if b["snoreSec"]:
-            h = max(2, b["snoreSec"] / 300 * H)
-            svg.append(f'<rect class="bar {b["bucket"]}" x="{x(b["startMs"]) + 0.5:.1f}" y="{H - h:.1f}" width="{max(0.5, bw - 1):.1f}" height="{h:.1f}"><title>{local(b["startMs"], "%H:%M")}: {b["snoreSec"]} s snoring ({b["bucket"]})</title></rect>')
+        svg.append(f'<rect class="gap" x="{x(g["fromMs"]):.1f}" y="0" width="{max(2, x(g["toMs"]) - x(g["fromMs"])):.1f}" height="{H}"></rect>')
+    for i, b in enumerate(bouts):
+        svg.append(f'<rect class="band" data-i="{i}" x="{x(b["startMs"]):.2f}" y="0" width="{max(1.2, x(b["endMs"]) - x(b["startMs"])):.2f}" height="{H}"></rect>')
+    if per_min:
+        pts = [(x(start + (m + 0.5) * 60_000), H - 2 - c / ymax * (H - 10)) for m, c in enumerate(per_min)]
+        line = "M" + " L".join(f"{px:.1f},{py:.1f}" for px, py in pts)
+        svg.append(f'<path class="areafill" d="{line} L{pts[-1][0]:.1f},{H} L{pts[0][0]:.1f},{H} Z"/>')
+        svg.append(f'<path class="line" d="{line}"/>')
     svg.append(f'<line class="axis" x1="0" y1="{H}" x2="{W}" y2="{H}" vector-effect="non-scaling-stroke"/>')
     svg.append("</svg>")
 
     marks = "".join(
-        f'<span class="mark" style="left:{pct(g["tMs"])}" title="Possible gasp {local(g["tMs"], "%-I:%M:%S %p").lower()} (score {g["score"]})">▼</span>'
-        for g in s["gaspCandidates"])
+        f'<button class="mark" data-gasp="{i}" style="left:{pct(g["tMs"])}" title="Possible gasp {local(g["tMs"], "%-I:%M:%S %p").lower()} (score {g["score"]}): click to listen">▼</button>'
+        for i, g in enumerate(s["gaspCandidates"]))
     ticks = []
     hour = dt.datetime.fromtimestamp(start / 1000, TZ).replace(minute=0, second=0, microsecond=0)
     while hour.timestamp() * 1000 <= end:
@@ -546,7 +579,6 @@ def render(s: dict) -> str:
             align = "edge-l" if frac < 0.03 else "edge-r" if frac > 0.97 else ""
             ticks.append(f'<span class="tlabel {align}" style="left:{pct(t)}">{hour.strftime("%-I %p").lower()}</span>')
         hour += dt.timedelta(hours=1)
-    ai = s.get("mode") == "ai"
     strip_items = ([(fb["startMs"], fb["endMs"], "Faint snoring") for fb in s.get("faintSnoring", [])]
                    + [(i["tMs"], i["tMs"] + 1000, "Single snore sound") for i in s.get("isolatedSounds", [])])
     strip = ""
@@ -554,8 +586,20 @@ def render(s: dict) -> str:
         strip = (f'<svg class="strip" viewBox="0 0 {W} 10" preserveAspectRatio="none" aria-label="Not counted">'
                  + "".join(f'<rect class="faint" x="{x(a):.1f}" y="0" width="{max(3.0, x(b) - x(a)):.1f}" height="10"><title>{label} {local(a, "%-I:%M %p").lower()}</title></rect>'
                            for a, b, label in strip_items) + "</svg>")
-    timeline_html = (f'<div class="tl{" quiet" if not s["snoreMs"] else ""}"><div class="marks">{marks}</div>{"".join(svg)}{strip}'
-                     f'<div class="ticks">{"".join(ticks)}</div></div>')
+    timeline_html = (
+        f'<div class="tl{" quiet" if not bouts else ""}"><div class="marks">{marks}</div>'
+        f'<div class="chartwrap" id="chartarea"><span class="ymax">{ymax} snores/min</span>{"".join(svg)}'
+        '<div class="cursor" id="cursor" hidden></div><div class="playhead" id="playhead" hidden></div>'
+        '<div class="tip" id="tip" hidden></div></div>'
+        f'{strip}<div class="ticks">{"".join(ticks)}</div></div>')
+    js_data = json.dumps({
+        "start": start, "end": end, "tz": str(TZ), "perMin": per_min,
+        "bouts": [{"i": i, "startMs": b["startMs"], "endMs": b["endMs"], "peakMs": b["peakMs"],
+                   "clip": b["clip"], "clipStartMs": b["clipStartMs"], "sounds": b["sounds"]}
+                  for i, b in enumerate(bouts)],
+        "gasps": [{"tMs": g["tMs"], "clip": g["clip"], "clipStartMs": g["clipStartMs"]}
+                  for g in s["gaspCandidates"]],
+    })
 
     total = max(1, s["snoreMs"])
     im = s.get("intensityMs") or {}
@@ -567,8 +611,8 @@ def render(s: dict) -> str:
         for b in ("light", "moderate", "loud")) if im else ""
 
     ep_rows = ""
-    for ep in s["episodes"]:
-        player = (f'<audio controls preload="none" src="{e(ep["clip"])}"></audio> '
+    for i, ep in enumerate(s["episodes"]):
+        player = (f'<button class="play" data-bout="{i}">▶ Listen</button> '
                   f'<a class="orig" href="{e(ep["clip"].replace(".wav", "_original.wav"))}">original</a>'
                   if ep["clip"] else "—")
         if ai:
@@ -582,9 +626,9 @@ def render(s: dict) -> str:
                 f'<td>+{ep["aboveRoomDb"]:.0f} dB</td><td>{player}</td></tr>')
     gasp_rows = "".join(
         f'<tr><td>{local(g["tMs"], "%-I:%M:%S %p").lower()}</td><td>{g["score"]:.2f}</td>'
-        f'<td><audio controls preload="none" src="{e(g["clip"])}"></audio> '
+        f'<td><button class="play" data-gasp="{i}">▶ Listen</button> '
         f'<a class="orig" href="{e(g["clip"].replace(".wav", "_original.wav"))}">original</a></td></tr>'
-        for g in s["gaspCandidates"])
+        for i, g in enumerate(s["gaspCandidates"]))
 
     faint_ms = s.get("faintSnoreMs", 0)
     faint_n = len(s.get("faintSnoring", []))
@@ -609,9 +653,9 @@ def render(s: dict) -> str:
     ai_note = ('<p class="note">A bout runs from the first to the last snore the AI heard, with no gap longer than 30 s. '
                'This microphone is too quiet to measure how loud each snore was, so bouts are counted by the AI alone'
                f'{f" and {n_iso} single isolated snore sound" + ("s" if n_iso != 1 else "") + " (purple on the timeline) were left out" if n_iso else ""}.</p>')
-    body_eps = (ai_note + f'<table><thead><tr><th>Started</th><th>Lasted</th><th>Snore sounds</th><th>Most certain moment</th></tr></thead><tbody>{ep_rows}</tbody></table>'
+    body_eps = (ai_note + f'<table><thead><tr><th>Started</th><th>Lasted</th><th>Snore sounds</th><th>Listen</th></tr></thead><tbody>{ep_rows}</tbody></table>'
                 if ai and s["episodes"] else
-                f'<table><thead><tr><th>Started</th><th>Lasted</th><th>Snoring</th><th>Intensity</th><th>Above room</th><th>Loudest moment</th></tr></thead><tbody>{ep_rows}</tbody></table>'
+                f'<table><thead><tr><th>Started</th><th>Lasted</th><th>Snoring</th><th>Intensity</th><th>Above room</th><th>Listen</th></tr></thead><tbody>{ep_rows}</tbody></table>'
                 if s["episodes"] else ('<p class="empty">No snoring loud enough to count. The model did hear some; see "Snoring too faint to count" below.</p>'
                                        if s.get("faintSnoring") else '<p class="empty">No snoring detected.</p>'))
     faint_rows = "".join(
@@ -663,7 +707,29 @@ h2 {{ font-size:17px; margin:0 0 12px }}
 .tl {{ position:relative }}
 .tl svg {{ width:100%; height:130px; display:block }}
 .marks {{ position:relative; height:18px }}
-.mark {{ position:absolute; top:0; transform:translateX(-50%); color:var(--gasp); font-size:12px; line-height:1; cursor:default }}
+.mark {{ position:absolute; top:0; transform:translateX(-50%); color:var(--gasp); font-size:12px; line-height:1;
+  background:none; border:0; padding:0 2px; cursor:pointer }}
+[hidden] {{ display:none !important }}
+.chartwrap {{ position:relative; cursor:pointer }}
+.tl svg.chart {{ height:140px }}
+.tl.quiet svg.chart {{ height:40px }}
+.line {{ fill:none; stroke:var(--moderate); stroke-width:1.75; vector-effect:non-scaling-stroke; stroke-linejoin:round }}
+.areafill {{ fill:var(--moderate); opacity:.14 }}
+.band {{ fill:var(--moderate); opacity:.08 }} .band.on {{ opacity:.25 }}
+.cursor, .playhead {{ position:absolute; top:0; bottom:0; width:1px; pointer-events:none }}
+.cursor {{ background:var(--muted); opacity:.6 }}
+.playhead {{ background:var(--ink); width:2px; margin-left:-1px }}
+.tip {{ position:absolute; top:6px; transform:translateX(-50%); background:var(--ink); color:var(--bg); font-size:12px;
+  padding:3px 8px; border-radius:6px; white-space:nowrap; pointer-events:none }}
+.ymax {{ position:absolute; left:0; top:0; font-size:11px; color:var(--muted); pointer-events:none }}
+.play {{ font:inherit; font-size:13px; border:1px solid var(--line); background:var(--bg); color:var(--ink);
+  border-radius:999px; padding:3px 12px; cursor:pointer }}
+.play.on {{ background:var(--moderate); color:#fff; border-color:transparent }}
+.pbar {{ position:sticky; bottom:12px; margin-top:16px; background:var(--card); border:1px solid var(--line);
+  border-radius:14px; padding:10px 14px; display:flex; gap:12px; align-items:center;
+  box-shadow:0 8px 28px rgba(0,0,0,.14); z-index:5 }}
+.pbar audio {{ flex:1; max-width:none; min-width:0 }}
+#now {{ font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45% }}
 .ticks {{ position:relative; height:20px; margin-top:4px }}
 .tlabel {{ position:absolute; top:0; transform:translateX(-50%); color:var(--muted); font-size:12px; white-space:nowrap }}
 .tlabel.edge-l {{ transform:none }} .tlabel.edge-r {{ transform:translateX(-100%) }}
@@ -700,14 +766,21 @@ footer {{ color:var(--muted); font-size:12px; margin-top:24px }}
 <p class="sub">{local(start, '%-I:%M %p').lower()} – {local(end, '%-I:%M %p').lower()} · {hm(s["recordedMs"])} recorded</p>
 {banner}
 <div class="stats">{"".join(f'<div class="stat"><b>{e(v)}</b><span>{e(k)}</span></div>' for v, k in stats)}</div>
-<section class="card"><h2>Timeline</h2><p class="note">Each bar is a 5-minute stretch; a full-height bar means snoring the whole time.</p>{timeline_html}
+<section class="card"><h2>Timeline</h2><p class="note">Snores per minute through the night; shaded areas are snoring bouts. Click anywhere on the graph to hear that moment.</p>{timeline_html}
 <div class="legend legend-row">{legend_html}</div></section>
 {f'<section class="card"><h2>Intensity</h2><div class="inten">{inten}</div><div class="legend">{inten_legend}</div></section>' if s["snoreMs"] and im else ""}
 <section class="card wide"><h2>{"Snoring bouts" if ai else "Snoring episodes"}</h2>{body_eps}</section>
 {f'<section class="card wide"><h2>Snoring too faint to count</h2>{body_faint}</section>' if body_faint else ""}
 <section class="card wide"><h2>Possible gasps</h2>{body_gasp}</section>
+<div class="pbar" id="pbar" hidden><span id="now"></span><audio id="player" controls preload="none"></audio></div>
 <footer>Dream Catcher can't tell who, or what, is snoring. Analyzed {s["frames"]:,} frames in {s["analysisSeconds"]} s with {e(s["model"])}. {footer_detail} Clips have the mic hiss removed and are turned up; "original" is the untouched recording.</footer>
-</main></body></html>"""
+</main>
+<script id="dc-data" type="application/json">{js_data}</script>
+<script>{PLAYER_JS}</script>
+</body></html>"""
+
+
+PLAYER_JS = "\n(() => {\n  const D = JSON.parse(document.getElementById('dc-data').textContent);\n  const area = document.getElementById('chartarea');\n  const player = document.getElementById('player'), bar = document.getElementById('pbar'), now = document.getElementById('now');\n  const cursor = document.getElementById('cursor'), head = document.getElementById('playhead'), tip = document.getElementById('tip');\n  const span = D.end - D.start;\n  const pct = t => ((t - D.start) / span * 100) + '%';\n  const fmt = (t, sec) => new Date(t).toLocaleTimeString('en-US',\n    {hour: 'numeric', minute: '2-digit', second: sec ? '2-digit' : undefined, timeZone: D.tz}).toLowerCase();\n  const timeAt = ev => { const r = area.getBoundingClientRect();\n    return D.start + Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)) * span; };\n  const boutAt = t => D.bouts.find(b => b.clip && t >= b.startMs - 5000 && t <= b.endMs + 5000);\n  const nearest = t => { let best = null, bd = Infinity;\n    for (const b of D.bouts) { if (!b.clip) continue;\n      const d = Math.max(b.startMs - t, t - b.endMs, 0); if (d < bd) { bd = d; best = b; } }\n    return bd <= 15 * 60000 ? best : null; };\n  let current = null;\n  function play(item, t, label, isBout) {\n    current = item;\n    const off = Math.max(0, (t - item.clipStartMs) / 1000);\n    const go = () => { player.currentTime = Math.min(off, Math.max(0, (player.duration || off + 1) - 0.25)); player.play(); };\n    if (!player.src.endsWith(item.clip)) { player.src = item.clip; player.addEventListener('loadedmetadata', go, {once: true}); player.load(); }\n    else go();\n    now.textContent = label; bar.hidden = false;\n    document.querySelectorAll('[data-bout]').forEach(el => el.classList.toggle('on', isBout && +el.dataset.bout === item.i));\n    document.querySelectorAll('.band').forEach(el => el.classList.toggle('on', isBout && +el.dataset.i === item.i));\n  }\n  const playBout = (b, t) => play(b, t, `Snoring at ${fmt(t, true)} · bout of ${b.sounds} snores from ${fmt(b.startMs)}`, true);\n  if (area) {\n    area.addEventListener('mousemove', ev => {\n      const t = timeAt(ev), b = boutAt(t), m = Math.floor((t - D.start) / 60000);\n      cursor.style.left = pct(t); tip.style.left = pct(t); cursor.hidden = tip.hidden = false;\n      tip.textContent = b ? `${fmt(t)} · ${D.perMin[m] || 0} snores/min · click to listen`\n                          : (nearest(t) ? `${fmt(t)} · click for the nearest snoring` : `${fmt(t)} · no snoring nearby`);\n    });\n    area.addEventListener('mouseleave', () => { cursor.hidden = tip.hidden = true; });\n    area.addEventListener('click', ev => {\n      const t = timeAt(ev), b = boutAt(t);\n      if (b) playBout(b, Math.min(Math.max(t, b.startMs), b.endMs));\n      else { const n = nearest(t); if (n) playBout(n, n.peakMs); }\n    });\n  }\n  document.querySelectorAll('[data-bout]').forEach(el => el.addEventListener('click', () => {\n    const b = D.bouts[+el.dataset.bout]; playBout(b, b.peakMs); }));\n  document.querySelectorAll('[data-gasp]').forEach(el => el.addEventListener('click', ev => {\n    ev.stopPropagation(); const g = D.gasps[+el.dataset.gasp];\n    play(g, g.tMs, `Possible gasp at ${fmt(g.tMs, true)}`, false); }));\n  player.addEventListener('timeupdate', () => {\n    if (!current) return; head.style.left = pct(current.clipStartMs + player.currentTime * 1000); head.hidden = false; });\n  player.addEventListener('ended', () => { head.hidden = true; });\n})();\n"
 
 
 # --------------------------------------------------------------------------- CLI
