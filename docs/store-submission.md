@@ -8,7 +8,7 @@ account holder.
 
 | Field | Value |
 | --- | --- |
-| Bundle ID | `com.dreamcatcher.DreamCatcher` |
+| Bundle ID | `com.waleedrizwan.DreamCatcher` |
 | Display name | Dream Catcher |
 | Category | Health & Fitness (`public.app-category.healthcare-fitness`) |
 | Age rating | 4+ (no objectionable content; see the medical note below) |
@@ -112,7 +112,7 @@ Repo-side (done unless noted):
 Account-side (the account holder must do these):
 
 - [ ] Apple Developer Program membership ($99/yr)
-- [ ] Register bundle ID `com.dreamcatcher.DreamCatcher`, create the App Store
+- [ ] Register bundle ID `com.waleedrizwan.DreamCatcher`, create the App Store
       Connect record
 - [ ] **Privacy policy URL** — required even for a local-only app with no
       accounts. Host the text in `docs/privacy-policy.md`.
