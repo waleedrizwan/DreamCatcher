@@ -142,6 +142,10 @@ struct ReportView: View {
                     // Double, not 0...5: an Int domain against Double values
                     // silently maps nothing and the chart renders empty.
                     .chartYScale(domain: 0.0...5.0)
+                    // End padding leaves the last hour label room; without it
+                    // the label at the right edge is truncated to "…".
+                    .chartXScale(domain: date(s.startedAtMs)...date(end),
+                                 range: .plotDimension(endPadding: 16))
                     .chartXAxis {
                         AxisMarks(values: .stride(by: .hour)) {
                             AxisGridLine()

@@ -168,7 +168,8 @@ struct HistoryView: View {
 
     @ViewBuilder
     private var trendSection: some View {
-        let points = Array(trend.prefix(window.nights)).reversed()
+        let nights = windowNights(window.nights)
+        let points = trend.filter { nights.contains($0.nightOf) }.reversed()
         Section("Trends") {
             Picker("Window", selection: $window) {
                 ForEach(TrendWindow.allCases, id: \.self) {
@@ -177,11 +178,21 @@ struct HistoryView: View {
             }
             .pickerStyle(.segmented)
 
+            // Every night in the window is an x category, so a night with no
+            // recording is an empty slot rather than a missing bar or a zero.
             Chart(Array(points), id: \.nightOf) { point in
                 BarMark(
                     x: .value("Night", shortLabel(point.nightOf)),
                     y: .value("Snore minutes", point.snoreTimeMs / 60_000))
                 .foregroundStyle(severityColor(snoreMs: point.snoreTimeMs))
+            }
+            .chartXScale(domain: nights.map(shortLabel))
+            .chartXAxis {
+                // Thirty dates don't fit under a phone-width chart: label
+                // every fifth night in the month view.
+                AxisMarks(values: nights.enumerated()
+                    .filter { window == .week || $0.offset % 5 == 0 }
+                    .map { shortLabel($0.element) })
             }
             .chartYAxisLabel("min snoring")
             .frame(height: 150)
@@ -258,6 +269,19 @@ struct HistoryView: View {
         let comps = calendar.dateComponents([.year, .month], from: start)
         return Array(repeating: "", count: leading) + range.map {
             String(format: "%04d-%02d-%02d", comps.year!, comps.month!, $0)
+        }
+    }
+
+    /// The last `count` night_of strings, oldest first, ending with the most
+    /// recent night (spec §3.1: the local date of now − 12 h).
+    private func windowNights(_ count: Int) -> [String] {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.dateFormat = "yyyy-MM-dd"
+        let latest = Date().addingTimeInterval(-12 * 3600)
+        return (0..<count).reversed().compactMap { back in
+            calendar.date(byAdding: .day, value: -back, to: latest)
+                .map(formatter.string(from:))
         }
     }
 
