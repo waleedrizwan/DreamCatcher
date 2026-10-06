@@ -15,7 +15,7 @@ set -u
 export TZ="${DC_TZ:-America/Toronto}"
 
 START="${DC_START:-02:00}"          # local time, HH:MM
-END="${DC_END:-09:00}"              # local time, HH:MM (must be after START, same day)
+END="${DC_END:-12:00}"              # local time, HH:MM (must be after START, same day)
 DEVICE="${DC_DEVICE:-plughw:CARD=Device,DEV=0}"
 CHUNK_SECS="${DC_CHUNK_SECS:-600}"
 ROOT="${DC_ROOT:-$HOME/nights}"

@@ -4,7 +4,7 @@ The Pi only records. Everything else happens on the Mac.
 
 ```
 Pi (dreamcatcher.local)                     Mac
-record.sh  ── 02:00–09:00, 10-min WAVs ──►  pull.sh     rsync ~/nights → ~/DreamCatcher/nights
+record.sh  ── 02:00–12:00, 10-min WAVs ──►  pull.sh     rsync ~/nights → ~/DreamCatcher/nights
            (cron every 5 min + @reboot)     analyze.py  YAMNet (iOS Core ML bundle) → shared detector → report
 ```
 
