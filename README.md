@@ -5,6 +5,14 @@
 
 Vibe coded replacement for Snore Labs. Does the same thing. Free.
 
+<p>
+<img src="docs/screenshots/1-home.png" width="19%">
+<img src="docs/screenshots/2-report.png" width="19%">
+<img src="docs/screenshots/3-report-detail.png" width="19%">
+<img src="docs/screenshots/4-history.png" width="19%">
+<img src="docs/screenshots/5-trends.png" width="19%">
+</p>
+
 ## Get it
 
 App Store: coming soon.

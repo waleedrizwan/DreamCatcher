@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0] - 2026-10-06
+
+First App Store release.
+
+- Report timeline: the last hour label no longer truncates to "…"
+- Trends: the week and month windows are the last 7 and 30 calendar nights, so a night you didn't record shows as an empty slot and counts in "N of M nights recorded"
+- Trends: a date axis with readable labels in both the week and month views
+
 ## [0.1.0] - 2026-10-06
 
 First public release.

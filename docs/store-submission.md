@@ -13,7 +13,7 @@ account holder.
 | Category | Health & Fitness (`public.app-category.healthcare-fitness`) |
 | Age rating | 4+ (no objectionable content; see the medical note below) |
 | Deployment target | iOS 17.0, iPhone only |
-| Version / build | `MARKETING_VERSION` 0.1.0 / `CURRENT_PROJECT_VERSION` 1 in `ios/project.yml` |
+| Version / build | `MARKETING_VERSION` 1.0.0 / `CURRENT_PROJECT_VERSION` 1 in `ios/project.yml` |
 | Export compliance | `ITSAppUsesNonExemptEncryption = false` in the bundle — no networking, no custom crypto, so the upload question is pre-answered |
 | Privacy label | **Data Not Collected** — backed by `PrivacyInfo.xcprivacy` and the absence of any analytics SDK |
 
