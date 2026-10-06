@@ -3,11 +3,7 @@
 [![CI](https://github.com/waleedrizwan/DreamCatcher/actions/workflows/ci.yml/badge.svg)](https://github.com/waleedrizwan/DreamCatcher/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/waleedrizwan/DreamCatcher)](https://github.com/waleedrizwan/DreamCatcher/releases/latest)
 
-A free snore tracker for iPhone. I made it because SnoreLab locks most of the good stuff behind a subscription.
-
-Put your phone on the nightstand, tap Start, go to sleep. It listens all night (screen locked is fine) and picks out the snoring with an AI sound model that runs right on the phone. In the morning you see when and how much you snored, and you can play back the worst parts.
-
-No account, no ads, no tracking. The app never touches the internet, so your audio stays on your phone.
+Vibe coded replacement for Snore Labs. Does the same thing. Free.
 
 ## Get it
 
