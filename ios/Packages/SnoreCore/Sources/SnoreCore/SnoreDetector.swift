@@ -5,8 +5,8 @@ import Foundation
 public struct DetectorParams: Codable, Equatable, Sendable {
     public var windowMs: Int64 = 1000
     public var hopMs: Int64 = 500
-    public var confThreshold: Double = 0.60   // iOS Medium default
-    public var confStrong: Double = 0.80      // iOS Medium default
+    public var confThreshold: Double = 0.35   // Medium default (YAMNet sigmoid scale)
+    public var confStrong: Double = 0.55      // Medium default (YAMNet sigmoid scale)
     public var speechVetoConf: Double = 0.50
     public var nfInit: Double = -60.0
     public var nfRisePerFrame: Double = 0.05
@@ -27,9 +27,9 @@ public struct DetectorParams: Codable, Equatable, Sendable {
     public static func forSensitivity(_ s: Sensitivity) -> DetectorParams {
         var p = DetectorParams()
         switch s {
-        case .low:    p.confThreshold = 0.75; p.confStrong = 0.90
+        case .low:    p.confThreshold = 0.50; p.confStrong = 0.70
         case .medium: break
-        case .high:   p.confThreshold = 0.45; p.confStrong = 0.70
+        case .high:   p.confThreshold = 0.22; p.confStrong = 0.40
         }
         return p
     }

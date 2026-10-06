@@ -31,9 +31,14 @@ public enum ClipWriter {
                                                count: samples.count)
         }
         try file.write(from: buffer)
-        let bytes = (try? FileManager.default
-            .attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
-        return Written(url: url, bytes: bytes ?? 0,
+        // Clips are written while the phone is locked all night, so they must
+        // not carry NSFileProtectionComplete (design-ios §4).
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+            ofItemAtPath: url.path)
+        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let bytes = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
+        return Written(url: url, bytes: bytes,
                        durationMs: Int64(samples.count) * 1000 / 16_000)
     }
 }

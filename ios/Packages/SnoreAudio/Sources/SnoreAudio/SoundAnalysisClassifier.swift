@@ -16,9 +16,25 @@ public final class SoundAnalysisClassifier: NSObject, SnoreClassifying,
     private var analyzer: SNAudioStreamAnalyzer?
     private var request: SNClassifySoundRequest?
     private var handler: (@Sendable (ClassifierScores) -> Void)?
-    private let queue = DispatchQueue(label: "snorelab.soundanalysis")
-    /// Last error from the analysis stream (Spike 0 reads this).
-    public private(set) var lastError: Error?
+    private let queue = DispatchQueue(label: "dreamcatcher.soundanalysis")
+    /// Last error from the analysis stream (Spike 0 reads this). Written on
+    /// the analyzer's callback thread, read from actors: an `Error?` is a
+    /// reference-counted box, so it is lock-guarded.
+    private let errorLock = NSLock()
+    private var storedError: Error?
+    public var lastError: Error? {
+        errorLock.lock(); defer { errorLock.unlock() }
+        return storedError
+    }
+    private func setLastError(_ error: Error?) {
+        errorLock.lock(); defer { errorLock.unlock() }
+        storedError = error
+    }
+    private var resultCount = 0
+
+    public var statusLine: String {
+        "soundanalysis.v1 results=\(resultCount)"
+    }
 
     public func start(resultHandler: @escaping @Sendable (ClassifierScores) -> Void) throws {
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
@@ -36,7 +52,7 @@ public final class SoundAnalysisClassifier: NSObject, SnoreClassifying,
         self.analyzer = analyzer
         self.request = request
         self.handler = resultHandler
-        self.lastError = nil
+        setLastError(nil)
     }
 
     public func process(samples: [Float], atSampleIndex: Int64) {
@@ -57,6 +73,9 @@ public final class SoundAnalysisClassifier: NSObject, SnoreClassifying,
         }
     }
 
+    /// The analyzer keeps its own continuous timeline; nothing to drop.
+    public func reset() {}
+
     public func stop() {
         if let request { analyzer?.remove(request) }
         analyzer?.completeAnalysis()
@@ -71,6 +90,7 @@ public final class SoundAnalysisClassifier: NSObject, SnoreClassifying,
         guard let result = result as? SNClassificationResult else { return }
         let snore = result.classification(forIdentifier: "snoring")?.confidence ?? 0
         let speech = result.classification(forIdentifier: "speech")?.confidence ?? 0
+        resultCount += 1
         let end = result.timeRange.end
         let endSample = end.isNumeric
             ? Int64((end.seconds * Self.sampleRate).rounded()) : nil
@@ -79,6 +99,6 @@ public final class SoundAnalysisClassifier: NSObject, SnoreClassifying,
     }
 
     public func request(_ request: SNRequest, didFailWithError error: Error) {
-        lastError = error
+        setLastError(error)
     }
 }

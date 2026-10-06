@@ -18,7 +18,7 @@ public struct AppDatabase: Sendable {
     public static func open(directory: URL) throws -> AppDatabase {
         try FileManager.default.createDirectory(at: directory,
                                                 withIntermediateDirectories: true)
-        let dbURL = directory.appendingPathComponent("SnoreLab.sqlite")
+        let dbURL = directory.appendingPathComponent("DreamCatcher.sqlite")
         var config = Configuration()
         config.journalMode = .wal
         #if os(iOS)

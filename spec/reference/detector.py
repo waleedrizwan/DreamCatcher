@@ -1,4 +1,4 @@
-"""Snore Laboratory — reference implementation of the shared detector.
+"""Dream Catcher — reference implementation of the shared detector.
 
 This is the normative executable form of spec/SHARED_BEHAVIOR_SPEC.md §1.
 It exists to (a) generate/validate the golden fixtures both native
@@ -18,8 +18,8 @@ from typing import List, Optional
 class DetectorParams:
     WINDOW_MS: int = 1000
     HOP_MS: int = 500
-    CONF_THRESHOLD: float = 0.60      # iOS medium default; Android medium = 0.35
-    CONF_STRONG: float = 0.80         # iOS medium default; Android medium = 0.55
+    CONF_THRESHOLD: float = 0.35      # medium default; YAMNet sigmoid scale on both platforms
+    CONF_STRONG: float = 0.55         # medium default; YAMNet sigmoid scale on both platforms
     SPEECH_VETO_CONF: float = 0.50
     NF_INIT: float = -60.0
     NF_RISE_PER_FRAME: float = 0.05

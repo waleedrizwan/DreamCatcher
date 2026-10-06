@@ -17,8 +17,15 @@ public final class AudioCaptureEngine: @unchecked Sendable {
     private var converter: AVAudioConverter?
     private var samplesDelivered: Int64 = 0
     private var onChunk: (@Sendable (Chunk) -> Void)?
+    private var configObserver: NSObjectProtocol?
 
     public private(set) var isRunning = false
+
+    /// Fired on `AVAudioEngineConfigurationChange` — the input format changed
+    /// under the engine (route churn; design-ios §2.4 "the classic overnight
+    /// crash"). The tap and converter are format-bound, so the owner must
+    /// restart capture; a fresh engine rebuilds both at the new format.
+    public var onConfigurationChange: (@Sendable () -> Void)?
 
     public init() {}
 
@@ -47,10 +54,19 @@ public final class AudioCaptureEngine: @unchecked Sendable {
         }
         engine.prepare()
         try engine.start()
+        configObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine,
+            queue: nil) { [weak self] _ in
+                self?.onConfigurationChange?()
+            }
         isRunning = true
     }
 
     public func stop() {
+        if let configObserver {
+            NotificationCenter.default.removeObserver(configObserver)
+            self.configObserver = nil
+        }
         guard isRunning else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()

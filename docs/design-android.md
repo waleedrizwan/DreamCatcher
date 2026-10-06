@@ -1,6 +1,6 @@
-# Android App Design — "Snore Laboratory" (snore-labratory)
+# Android App Design — "Dream Catcher"
 
-Greenfield native Android app: Kotlin, Jetpack Compose, on-device YAMNet snore detection, local-only Room + file storage. Proposed root: `/Users/waleedrizwan/code/snore-labratory/android/`. All facts about Android 14/15/16 FGS rules, MediaPipe packaging, Play deadlines, and Vico versions were verified via web search (sources at the end).
+Greenfield native Android app: Kotlin, Jetpack Compose, on-device YAMNet snore detection, local-only Room + file storage. Proposed root: `android/`. All facts about Android 14/15/16 FGS rules, MediaPipe packaging, Play deadlines, and Vico versions were verified via web search (sources at the end).
 
 ---
 
@@ -17,7 +17,7 @@ Greenfield native Android app: Kotlin, Jetpack Compose, on-device YAMNet snore d
 - At start: `ServiceCompat.startForeground(this, NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)`. Targeting 34+ the type is **mandatory** at `startForeground` time or you get `MissingForegroundServiceTypeException`.
 - **While-in-use restriction:** a `microphone`-type FGS **cannot be started while the app is in the background**, and explicitly cannot be launched from `BOOT_COMPLETED` (Android 14+). This fits our UX — the user taps Start with the app foregrounded. Consequence: if the OS kills the service mid-night, a `START_STICKY` restart may land while the app is "background" and the mic will be unavailable. Design: wrap `startForeground`/`AudioRecord` startup in try/catch for `ForegroundServiceStartNotAllowedException`/`SecurityException`; on failure, mark the session `interrupted` in Room and post a plain notification ("Session ended early — tap for partial report"). Never crash-loop.
 - **No FGS timeout applies to us:** the Android 15+ 6-hour `Service.onTimeout()` limit applies to `dataSync`/`mediaProcessing` types only; `microphone` FGS may run all night.
-- **Doze:** Doze only engages when the device is unplugged + stationary + screen off. The nightstand-while-charging case never enters Doze. For the unplugged case, an FGS keeps the process alive but does not guarantee CPU: hold a **`PARTIAL_WAKE_LOCK`** (`PowerManager.newWakeLock(PARTIAL_WAKE_LOCK, "snorelab:session")`, `setReferenceCounted(false)`, acquired in `onStartCommand`, released in `onDestroy` — no timeout, session-scoped). In practice the active audio-capture path also holds the audio HAL awake, but the explicit wake lock is the documented-safe pattern.
+- **Doze:** Doze only engages when the device is unplugged + stationary + screen off. The nightstand-while-charging case never enters Doze. For the unplugged case, an FGS keeps the process alive but does not guarantee CPU: hold a **`PARTIAL_WAKE_LOCK`** (`PowerManager.newWakeLock(PARTIAL_WAKE_LOCK, "dreamcatcher:session")`, `setReferenceCounted(false)`, acquired in `onStartCommand`, released in `onDestroy` — no timeout, session-scoped). In practice the active audio-capture path also holds the audio HAL awake, but the explicit wake lock is the documented-safe pattern.
 - **Do not** request `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in MVP (Play policy scrutiny; FGS + wake lock is sufficient on stock Android). Risk to document: aggressive OEM task killers (Xiaomi/Huawei/OnePlus) can still kill FGSs — ship a Settings help screen linking users to OEM-specific "don't optimize" toggles (dontkillmyapp.com patterns), and rely on the heartbeat/interrupted-session recovery below.
 - The mic **privacy indicator (green dot)** shows all night on Android 12+. Mention it in onboarding so users don't panic.
 
@@ -114,7 +114,7 @@ Timeline chart renders straight from `episodes` (sparse; no per-minute bin table
 ## 8. Project scaffolding & testing
 
 ```
-/Users/waleedrizwan/code/snore-labratory/android/
+android/
   settings.gradle.kts            # includes below; gradle/libs.versions.toml version catalog
   app/                           # Compose UI, navigation, Hilt app, SnoreSessionService
   core/detection/                # PURE KOTLIN (kotlin("jvm")): DetectionStateMachine,
@@ -148,11 +148,11 @@ Toolchain: Kotlin 2.x, AGP 8.x, KSP, Hilt, coroutines/Flow; tests: JUnit + `kotl
 Build order: (1) scaffolding + catalogs, (2) `core/detection` with full tests, (3) `core/ml` + instrumented WAV test, (4) `core/audio` + service + wake lock, (5) `core/data`, (6) UI screens, (7) tuning pass with real overnight recordings.
 
 ### Critical Files for Implementation
-- /Users/waleedrizwan/code/snore-labratory/android/core/detection/src/main/kotlin/DetectionStateMachine.kt
-- /Users/waleedrizwan/code/snore-labratory/android/app/src/main/kotlin/session/SnoreSessionService.kt
-- /Users/waleedrizwan/code/snore-labratory/android/core/ml/src/main/kotlin/MediaPipeSnoreClassifier.kt
-- /Users/waleedrizwan/code/snore-labratory/android/core/audio/src/main/kotlin/AacClipEncoder.kt
-- /Users/waleedrizwan/code/snore-labratory/android/core/data/src/main/kotlin/SessionRepository.kt
+- android/core/detection/src/main/kotlin/DetectionStateMachine.kt
+- android/app/src/main/kotlin/session/SnoreSessionService.kt
+- android/core/ml/src/main/kotlin/MediaPipeSnoreClassifier.kt
+- android/core/audio/src/main/kotlin/AacClipEncoder.kt
+- android/core/data/src/main/kotlin/SessionRepository.kt
 
 Sources:
 - [Foreground service types are required (Android 14)](https://developer.android.com/about/versions/14/changes/fgs-types-required)

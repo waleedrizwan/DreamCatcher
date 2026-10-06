@@ -1,0 +1,6 @@
+.venv/
+src/
+data/
+*.h5
+*.mlpackage
+compiled/

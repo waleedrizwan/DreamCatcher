@@ -160,17 +160,31 @@ public struct SessionRepository: Sendable {
         }
     }
 
-    /// Sessions under 5 minutes are discarded (spec §3.1): rows deleted via
-    /// cascade; the caller deletes clip files.
+    /// Sessions under 5 minutes are discarded (spec §3.1): the session row is
+    /// marked `discarded` and its children are deleted; the caller deletes the
+    /// clip files. Discarded sessions never appear in history.
     public func discardSession(sessionId: String) throws {
         try db.writer.write { dbc in
-            try dbc.execute(sql: "DELETE FROM session WHERE id = ?",
-                            arguments: [sessionId])
+            for table in ["clip", "gap", "event", "episode"] {
+                try dbc.execute(sql: "DELETE FROM \(table) WHERE session_id = ?",
+                                arguments: [sessionId])
+            }
+            try dbc.execute(
+                sql: "UPDATE session SET state = 'discarded' WHERE id = ?",
+                arguments: [sessionId])
         }
     }
 
+    /// Minimum session length worth keeping (spec §3.1) — shared by the normal
+    /// stop path and crash recovery.
+    public static let minSessionMs: Int64 = 5 * 60_000
+
     /// Crash recovery (spec §3.1): every session still in state 'recording' is
-    /// finalized from its persisted rows. Returns the recovered session ids.
+    /// finalized from its persisted rows. Returns the recovered session ids
+    /// (sessions too short to keep are discarded, not recovered).
+    ///
+    /// Callers run this at launch, before any new session starts, so every
+    /// 'recording' row is by definition orphaned.
     @discardableResult
     public func recoverOrphanSessions() throws -> [String] {
         let stale = try db.writer.read { dbc in
@@ -180,6 +194,18 @@ public struct SessionRepository: Sendable {
         }
         var recovered: [String] = []
         for session in stale {
+            // A night that died in its first few minutes is noise, however it
+            // ended (spec §3.1 discard rule applies on this path too).
+            let lastKnownMs = try db.writer.read { dbc in
+                try Int64.fetchOne(dbc,
+                    sql: "SELECT MAX(end_ms) FROM event WHERE session_id = ?",
+                    arguments: [session.id])
+            }
+            if max(session.lastHeartbeatMs, lastKnownMs ?? 0)
+                - session.startedAtMs < Self.minSessionMs {
+                try discardSession(sessionId: session.id)
+                continue
+            }
             let params = decodeParams(session.detectorParamsJson)
             let orphans = try db.writer.read { dbc in
                 try EventRecord
@@ -318,6 +344,36 @@ public struct SessionRepository: Sendable {
         try db.writer.read { dbc in
             try GapRecord.filter(sql: "session_id = ?", arguments: [sessionId])
                 .order(sql: "start_ms").fetchAll(dbc)
+        }
+    }
+
+    /// Trend series for History (spec §5.2): one point per RECORDED night,
+    /// newest first. Nights with no session are simply absent — they are gaps,
+    /// never zeros, and they never dilute the averages.
+    public struct NightPoint: Equatable, Sendable {
+        public var nightOf: String
+        public var sessionId: String
+        public var snoreTimeMs: Int64
+        public var episodeCount: Int
+        public var inBedMs: Int64
+    }
+
+    public func nightTrend(limit: Int = 30) throws -> [NightPoint] {
+        try recentSessions(limit: limit).map { s in
+            NightPoint(
+                nightOf: s.nightOf,
+                sessionId: s.id,
+                snoreTimeMs: s.snoreTimeMs ?? 0,
+                episodeCount: s.episodeCount ?? 0,
+                inBedMs: (s.endedAtMs ?? s.startedAtMs) - s.startedAtMs)
+        }
+    }
+
+    /// Every clip file the DB still references. The launch-time orphan GC
+    /// (spec §4) deletes any file on disk that is not in this set.
+    public func allClipFileNames() throws -> Set<String> {
+        try db.writer.read { dbc in
+            Set(try String.fetchAll(dbc, sql: "SELECT file_name FROM clip"))
         }
     }
 

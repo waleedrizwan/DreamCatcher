@@ -2,7 +2,7 @@ I have verified the key API facts. One important finding from research: there is
 
 ---
 
-# snore-labratory — iOS App Design Document
+# Dream Catcher — iOS App Design Document
 
 Greenfield native iOS app. Swift + SwiftUI. Local-only data, on-device ML snore detection, overnight recording sessions with morning reports, clip playback, and history/trends.
 
@@ -19,7 +19,7 @@ The detection pipeline below is deliberately structured so the classifier is a s
 
 ## 1. Minimum iOS version: **iOS 17.0**
 
-- `SNClassifySoundRequest(classifierIdentifier: .version1)` — the built-in classifier with the `"snoring"` label — requires iOS 15.0+. Confirmed: `.version1` is the only built-in classifier identifier, its label set (300+ classes) includes `snoring`, plus adjacent labels we can exploit (`breathing`, `cough`, `gasp`, `speech`, `snort`).
+- `SNClassifySoundRequest(classifierIdentifier: .version1)` — the built-in classifier with the `"snoring"` label — requires iOS 15.0+. Confirmed: `.version1` is the only built-in classifier identifier, its label set (300+ classes) includes `snoring`, plus adjacent labels we can exploit (`breathing`, `cough`, `gasp`, `speech`; verified against the 303-label list on iOS 26 — there is no `snort`, no choking, no teeth-grinding label).
 - Swift Charts requires iOS 16.0+ (and `chartScrollableAxes`/scrolling charts, useful for the night timeline, is iOS 17+).
 - The Observation framework (`@Observable`) requires iOS 17.0+ and is the recommended SwiftUI state pattern; it removes the `ObservableObject`/`@Published` boilerplate and over-invalidation.
 - As of mid-2026, iOS 17 covers the overwhelming majority of active iPhones; nothing about this app targets old hardware.
@@ -176,7 +176,7 @@ CREATE TABLE minuteAggregate (    -- powers the timeline chart without touching 
 File layout:
 ```
 Application Support/
-  SnoreLab.sqlite (+ -wal, -shm)
+  DreamCatcher.sqlite (+ -wal, -shm)
   Clips/<sessionId>/<episodeId>.m4a
 ```
 Mark `Clips/` with `isExcludedFromBackup = true` (stats are small and back up; audio is bulky and privacy-sensitive). Store only relative paths in the DB (container path changes across restores).
@@ -191,14 +191,14 @@ Mark `Clips/` with `isExcludedFromBackup = true` (stats are small and back up; a
   1. **Home / Record** — big Start button; pre-flight checks (mic permission, disk space, battery/charging hint); while recording: dim near-black UI, elapsed time, live "quiet/snoring" pip, Stop (confirm-to-stop to prevent pocket taps).
   2. **Night Report** — auto-presented on Stop and reachable from History. Summary cards (total snore time, episode count, session duration, % of night), intensity breakdown, timeline, episode list with inline clip playback (`AVAudioPlayer`, category `.playback`), delete-clip affordance.
   3. **History** — list grouped by week + month calendar grid (custom SwiftUI grid, not Charts) with per-day dot colored by snore severity; week/month trend charts.
-  4. **Settings** — sensitivity (maps to confidence threshold Low 0.75 / Med 0.6 / High 0.45), clip retention, storage usage + "delete all data", disclaimer, about.
+  4. **Settings** — sensitivity (maps to confidence threshold Low 0.50 / Med 0.35 / High 0.22 on the YAMNet scale, spec §1.1), clip retention, storage usage + "delete all data", disclaimer, about.
 - **Swift Charts:**
   - Timeline: `Chart` of `minuteAggregate` rows → `RectangleMark(xStart:xEnd:)` bins colored by intensity via `.foregroundStyle(by:)`; gray marks for interruption segments; `chartXScale` over the full night; `chartScrollableAxes(.horizontal)` (iOS 17) for long nights on small screens.
   - Trends: `BarMark` (x: night, y: total snore minutes) with `RuleMark` for the period average; `chartXSelection` for tap-to-inspect; second toggleable series for episode count.
 
 ## 7. Permissions & App Store
 
-- `NSMicrophoneUsageDescription`: "SnoreLab records through the microphone only during a sleep session you start, to detect snoring and save short snore clips. Audio never leaves your device." Request permission just-in-time on first Start, preceded by a one-screen explainer (raises grant rate).
+- `NSMicrophoneUsageDescription`: "DreamCatcher records through the microphone only during a sleep session you start, to detect snoring and save short snore clips. Audio never leaves your device." Request permission just-in-time on first Start, preceded by a one-screen explainer (raises grant rate).
 - Privacy nutrition label: **"Data Not Collected"** — truthful because nothing leaves the device (no accounts, no analytics SDKs in MVP — adding any analytics later changes this label; resist it).
 - Privacy manifest `PrivacyInfo.xcprivacy` (required): no tracking, no collected data types; declare required-reason APIs we use — `UserDefaults` (CA92.1) and file-timestamp APIs (C617.1) at minimum.
 - Health/medical positioning (App Review Guideline 5.1.3 territory): the app **describes sounds, it does not diagnose**. Never use "sleep apnea," "diagnosis," or "medical" in UI or App Store copy except in the disclaimer itself. Disclaimer ("Not a medical device. Not intended to diagnose, treat, or monitor any condition, including sleep apnea. If you have concerns about your sleep or breathing, consult a physician.") appears: (1) in onboarding (acknowledged once), (2) footer of every Night Report, (3) Settings, (4) App Store description. Category: Health & Fitness; rating 4+.
@@ -206,9 +206,9 @@ Mark `Clips/` with `isExcludedFromBackup = true` (stats are small and back up; a
 ## 8. Project scaffolding & tests
 
 ```
-snore-labratory/
-  SnoreLab.xcodeproj
-  SnoreLab/                      # app target (thin): SnoreLabApp.swift, screens, resources,
+dream-catcher/
+  DreamCatcher.xcodeproj
+  DreamCatcher/                      # app target (thin): DreamCatcherApp.swift, screens, resources,
                                  # Info.plist (UIBackgroundModes=audio), PrivacyInfo.xcprivacy
   Packages/
     SnoreCore/                   # SPM, no UIKit/AVFoundation: ClassificationFrame.swift,
@@ -221,7 +221,7 @@ snore-labratory/
       Tests/SnoreAudioTests/     # uses ScriptedClassifier + temp dirs; no mic needed
     SnoreStorage/                # GRDB: AppDatabase.swift, migrations, repositories
       Tests/SnoreStorageTests/   # in-memory DatabaseQueue
-  SnoreLabUITests/               # smoke only: launch, tab navigation
+  DreamCatcherUITests/               # smoke only: launch, tab navigation
 ```
 
 Representative unit test for the detection state machine (lives in `SnoreCoreTests`, runs in milliseconds, no audio hardware):
@@ -260,8 +260,8 @@ Key risks recap: (1) background classification (mitigated, section 0); (2) false
 Sources: [SNClassifySoundRequest — Apple](https://developer.apple.com/documentation/soundanalysis/snclassifysoundrequest), [SNClassifierIdentifier — Apple](https://developer.apple.com/documentation/soundanalysis/snclassifieridentifier), [Classifying live audio with a built-in classifier — Apple](https://developer.apple.com/documentation/SoundAnalysis/classifying-live-audio-input-with-a-built-in-sound-classifier), [Built-in classifier label list incl. snoring (SoundML)](https://github.com/chrisladd/SoundML), [Sound Analysis to the Tune of 300 Sounds — Swiftjective-C](https://www.swiftjectivec.com/sound-analysis-framework-built-in-model/), [Background classification failure report — Apple Dev Forums 811582](https://developer.apple.com/forums/thread/811582), [UIBackgroundModes — Apple](https://developer.apple.com/documentation/bundleresources/information-property-list/uibackgroundmodes), [windowDuration/overlapFactor usage — createwithswift.com](https://www.createwithswift.com/identify-individual-sounds-in-a-live-audio-buffer/).
 
 ### Critical Files for Implementation
-- /Users/waleedrizwan/code/snore-labratory/Packages/SnoreCore/Sources/SnoreCore/EpisodeAggregator.swift
-- /Users/waleedrizwan/code/snore-labratory/Packages/SnoreAudio/Sources/SnoreAudio/RecordingSessionActor.swift
-- /Users/waleedrizwan/code/snore-labratory/Packages/SnoreAudio/Sources/SnoreAudio/SoundAnalysisClassifier.swift
-- /Users/waleedrizwan/code/snore-labratory/Packages/SnoreStorage/Sources/SnoreStorage/AppDatabase.swift
-- /Users/waleedrizwan/code/snore-labratory/SnoreLab/Screens/ReportView.swift
+- Packages/SnoreCore/Sources/SnoreCore/EpisodeAggregator.swift
+- Packages/SnoreAudio/Sources/SnoreAudio/RecordingSessionActor.swift
+- Packages/SnoreAudio/Sources/SnoreAudio/SoundAnalysisClassifier.swift
+- Packages/SnoreStorage/Sources/SnoreStorage/AppDatabase.swift
+- DreamCatcher/Screens/ReportView.swift

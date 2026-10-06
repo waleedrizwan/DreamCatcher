@@ -26,7 +26,7 @@ struct ReportView: View {
                 intensitySection(session)
                 clipsSection
                 Section {
-                    Text("Snore Laboratory can't tell who — or what — is snoring.")
+                    Text("Dream Catcher can't tell who — or what — is snoring.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(medicalDisclaimer)
@@ -117,23 +117,37 @@ struct ReportView: View {
                     Text("No snoring detected 🎉").foregroundStyle(.secondary)
                 } else {
                     Chart {
-                        ForEach(bins, id: \.index) { bin in
-                            BarMark(
-                                x: .value("Time", binDate(s, bin.index)),
-                                y: .value("Minutes", bin.snoreSeconds / 60),
-                                width: .ratio(0.9))
+                        // RectangleMark spans each bin's real time range
+                        // (design-ios §6). A BarMark would depend on Charts
+                        // inferring a step from the data, which across an
+                        // 8-hour night yields hairlines or nothing at all.
+                        ForEach(bins.filter { $0.snoreSeconds > 0 },
+                                id: \.index) { bin in
+                            RectangleMark(
+                                xStart: .value("From", binDate(s, bin.index)),
+                                xEnd: .value("To", binDate(s, bin.index + 1)),
+                                yStart: .value("", 0.0),
+                                yEnd: .value("Minutes", bin.snoreSeconds / 60.0))
                             .foregroundStyle(color(bin.bucket))
                         }
                         ForEach(gaps, id: \.id) { gap in
                             RectangleMark(
                                 xStart: .value("From", date(gap.startMs)),
                                 xEnd: .value("To", date(gap.endMs)),
-                                yStart: .value("", 0),
-                                yEnd: .value("", 5))
+                                yStart: .value("", 0.0),
+                                yEnd: .value("", 5.0))
                             .foregroundStyle(.gray.opacity(0.25))
                         }
                     }
-                    .chartYScale(domain: 0...5)
+                    // Double, not 0...5: an Int domain against Double values
+                    // silently maps nothing and the chart renders empty.
+                    .chartYScale(domain: 0.0...5.0)
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .hour)) {
+                            AxisGridLine()
+                            AxisValueLabel(format: .dateTime.hour())
+                        }
+                    }
                     .chartYAxisLabel("min snoring / 5 min")
                     .frame(height: 160)
                 }

@@ -10,6 +10,8 @@ public final class AudioSessionCoordinator: @unchecked Sendable {
         case interruptionEnded(shouldResume: Bool)
         case routeChanged
         case mediaServicesReset
+        /// The engine's input format changed underneath us (design-ios §2.4).
+        case configurationChanged
     }
 
     private var observers: [NSObjectProtocol] = []
