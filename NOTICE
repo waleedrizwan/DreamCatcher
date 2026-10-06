@@ -1,0 +1,10 @@
+Dream Catcher
+Copyright 2026 Waleed Rizwan
+
+This repository bundles YAMNet (ios/Packages/SnoreAudio/Sources/SnoreAudio/Resources/),
+converted to Core ML from Google's released model and weights:
+  https://github.com/tensorflow/models/tree/master/research/audioset/yamnet
+YAMNet is Copyright Google LLC and licensed under the Apache License, Version 2.0:
+  https://www.apache.org/licenses/LICENSE-2.0
+The conversion script is in tools/yamnet/. The model files are redistributed
+unmodified apart from that format conversion.
