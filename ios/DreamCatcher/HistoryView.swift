@@ -178,21 +178,24 @@ struct HistoryView: View {
             }
             .pickerStyle(.segmented)
 
-            // Every night in the window is an x category, so a night with no
-            // recording is an empty slot rather than a missing bar or a zero.
+            // A date axis spanning the whole window: a night with no
+            // recording is an empty slot, never a zero bar.
             Chart(Array(points), id: \.nightOf) { point in
                 BarMark(
-                    x: .value("Night", shortLabel(point.nightOf)),
+                    x: .value("Night", nightDate(point.nightOf), unit: .day),
                     y: .value("Snore minutes", point.snoreTimeMs / 60_000))
                 .foregroundStyle(severityColor(snoreMs: point.snoreTimeMs))
             }
-            .chartXScale(domain: nights.map(shortLabel))
+            .chartXScale(domain: nightDate(nights[0])...nightDate(nights[nights.count - 1])
+                .addingTimeInterval(86_400))
             .chartXAxis {
-                // Thirty dates don't fit under a phone-width chart: label
-                // every fifth night in the month view.
-                AxisMarks(values: nights.enumerated()
-                    .filter { window == .week || $0.offset % 5 == 0 }
-                    .map { shortLabel($0.element) })
+                AxisMarks(values: .stride(by: .day, count: window == .week ? 1 : 7)) {
+                    AxisGridLine()
+                    AxisValueLabel(format: window == .week
+                        ? .dateTime.weekday(.abbreviated)
+                        : .dateTime.month(.abbreviated).day(),
+                        centered: window == .week)
+                }
             }
             .chartYAxisLabel("min snoring")
             .frame(height: 150)
@@ -272,29 +275,33 @@ struct HistoryView: View {
         }
     }
 
-    /// The last `count` night_of strings, oldest first, ending with the most
-    /// recent night (spec §3.1: the local date of now − 12 h).
-    private func windowNights(_ count: Int) -> [String] {
+    private var nightFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.dateFormat = "yyyy-MM-dd"
-        let latest = Date().addingTimeInterval(-12 * 3600)
+        return formatter
+    }
+
+    /// The last `count` night_of strings, oldest first. A night is named by
+    /// the date it starts (spec §3.1), so the newest finished night is
+    /// always yesterday's date; tonight joins the window tomorrow.
+    private func windowNights(_ count: Int) -> [String] {
+        let latest = calendar.date(byAdding: .day, value: -1,
+                                   to: calendar.startOfDay(for: Date()))!
         return (0..<count).reversed().compactMap { back in
             calendar.date(byAdding: .day, value: -back, to: latest)
-                .map(formatter.string(from:))
+                .map(nightFormatter.string(from:))
         }
+    }
+
+    private func nightDate(_ nightOf: String) -> Date {
+        nightFormatter.date(from: nightOf) ?? Date()
     }
 
     private func dayNumber(_ nightOf: String) -> String {
         let parts = nightOf.split(separator: "-")
         guard let last = parts.last else { return nightOf }
         return String(Int(last) ?? 0)
-    }
-
-    private func shortLabel(_ nightOf: String) -> String {
-        let parts = nightOf.split(separator: "-")
-        guard parts.count == 3 else { return nightOf }
-        return "\(parts[1])/\(parts[2])"
     }
 
     private func shiftMonth(_ date: Date, by months: Int) -> Date {
