@@ -84,7 +84,12 @@ FAINT_MAX = 10
 # it by ear). Here a snore sound is a run of frames with snoring >= the shared
 # CONF_THRESHOLD and no speech veto; sounds within MERGE_GAP_MS form a bout;
 # a bout needs AI_MIN_SOUNDS sounds, so one isolated sound never counts.
-AI_MIN_SOUNDS = 2
+# 4, not 2: on 2026-10-06 the user was awake 2-3 am breathing normally and
+# YAMNet scored that breathing exactly like confirmed snoring (snoring ~0.78,
+# breathing ~0.83 both), producing eight 2-3-sound bouts. Per-frame scores
+# cannot separate them; persistence can. Min 4 removed all eight and cost
+# 69->65 min (Oct 6) and 20->16 min (Oct 5; the confirmed 3:07 bout kept).
+AI_MIN_SOUNDS = 4
 
 # Interactive report: each bout gets one clip covering the whole bout (plus a
 # little either side), so clicking anywhere in it on the graph plays from
