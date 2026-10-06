@@ -189,7 +189,10 @@ struct HistoryView: View {
             .chartXScale(domain: nightDate(nights[0])...nightDate(nights[nights.count - 1])
                 .addingTimeInterval(86_400))
             .chartXAxis {
-                AxisMarks(values: .stride(by: .day, count: window == .week ? 1 : 7)) {
+                // Month: a label every week, none in the last few days,
+                // where it would run off the edge and truncate.
+                let days = nights.map(nightDate)
+                AxisMarks(values: window == .week ? days : [0, 7, 14, 21].map { days[$0] }) {
                     AxisGridLine()
                     AxisValueLabel(format: window == .week
                         ? .dateTime.weekday(.abbreviated)
