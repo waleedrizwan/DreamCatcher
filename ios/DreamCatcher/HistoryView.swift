@@ -189,15 +189,21 @@ struct HistoryView: View {
             .chartXScale(domain: nightDate(nights[0])...nightDate(nights[nights.count - 1])
                 .addingTimeInterval(86_400))
             .chartXAxis {
+                // Week: a centered label needs a tick on both sides, so the
+                // window's end is a tick too (with no label of its own).
                 // Month: a label every week, none in the last few days,
                 // where it would run off the edge and truncate.
                 let days = nights.map(nightDate)
-                AxisMarks(values: window == .week ? days : [0, 7, 14, 21].map { days[$0] }) {
+                let end = days[days.count - 1].addingTimeInterval(86_400)
+                AxisMarks(values: window == .week ? days + [end]
+                                                  : [0, 7, 14, 21].map { days[$0] }) { value in
                     AxisGridLine()
-                    AxisValueLabel(format: window == .week
-                        ? .dateTime.weekday(.abbreviated)
-                        : .dateTime.month(.abbreviated).day(),
-                        centered: window == .week)
+                    if value.as(Date.self).map({ $0 < end }) ?? false {
+                        AxisValueLabel(format: window == .week
+                            ? .dateTime.weekday(.abbreviated)
+                            : .dateTime.month(.abbreviated).day(),
+                            centered: window == .week)
+                    }
                 }
             }
             .chartYAxisLabel("min snoring")
