@@ -1,9 +1,12 @@
 # Changelog
 
-## [1.0.0] - 2026-10-06
+## [1.0.0] - 2026-10-07
 
 First App Store release.
 
+- Snore clips play at a normal volume through the speaker (they used to be almost silent)
+- Sessions are kept from 2 minutes (was 5)
+- Settings → About credits YAMNet
 - Report timeline: the last hour label no longer truncates to "…"
 - Trends: the week and month windows are the last 7 and 30 calendar nights, so a night you didn't record shows as an empty slot and counts in "N of M nights recorded"
 - Trends: a date axis with readable labels in both the week and month views
