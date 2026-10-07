@@ -15,9 +15,9 @@ Vibe coded replacement for Snore Labs. Does the same thing. Free.
 
 ## Get it
 
-App Store: coming soon.
+App Store: [Dream Catcher: Snore Tracker](https://apps.apple.com/app/id6819872641). It's in review right now, so the link goes live once Apple approves it.
 
-Until then, grab `DreamCatcher.ipa` from [Releases](https://github.com/waleedrizwan/DreamCatcher/releases/latest) and sideload it with [AltStore](https://altstore.io) or [SideStore](https://sidestore.io). Or open `ios/DreamCatcher.xcodeproj` in Xcode and run it on your phone (iOS 17+).
+Or grab `DreamCatcher.ipa` from [Releases](https://github.com/waleedrizwan/DreamCatcher/releases/latest) and sideload it with [AltStore](https://altstore.io) or [SideStore](https://sidestore.io). Or open `ios/DreamCatcher.xcodeproj` in Xcode and run it on your phone (iOS 17+).
 
 ## For developers
 
