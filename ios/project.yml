@@ -56,5 +56,5 @@ targets:
         # provisioning profile on first device build.
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: CCY6PYVHZW
-        CURRENT_PROJECT_VERSION: "2"
+        CURRENT_PROJECT_VERSION: "3"
         MARKETING_VERSION: "1.0.0"

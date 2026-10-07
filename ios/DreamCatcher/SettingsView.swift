@@ -90,6 +90,9 @@ struct SettingsView: View {
                     Text(medicalDisclaimer)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Text("Acknowledgements: snore detection uses YAMNet, Copyright Google LLC, licensed under the Apache License, Version 2.0.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Settings")
