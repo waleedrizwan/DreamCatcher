@@ -256,7 +256,7 @@ Write policy during recording (this IS the crash-recovery design): events are IN
 ### 3.1 Session lifecycle & edge cases
 - **Start**: insert `state='recording'` row, then start audio. Heartbeat UPDATE every 60 s.
 - **Normal end**: `flush()` detector -> finalize open episode -> compute rollups -> `state='completed'`.
-- **User ends immediately**: if duration < **5 min**, set `state='discarded'`, delete its events/episodes/clips and files, show toast "Session under 5 minutes — not saved." Discarded sessions never appear in history.
+- **User ends immediately**: if duration < **2 min**, set `state='discarded'`, delete its events/episodes/clips and files, show toast "Session under 2 minutes — not saved." Discarded sessions never appear in history.
 - **App killed / battery died mid-session**: on next launch, any `state='recording'` row is recovered: `ended_at_ms = max(last_heartbeat_ms, max(event.end_ms))`; re-run episode merge over events with `episode_id IS NULL` (offline replay of Section 1 merge rules); compute rollups; `state='recovered'`. Report shows banner "Recording ended unexpectedly at HH:MM". Already-written clips are kept.
 - **Zero snoring**: fully valid; rollups all 0/NULL noise floor; report shows the empty state (Section 5).
 - **Spanning midnight / DST**: epoch ms is immune; display uses `tz_id` (the session's own zone, so travel never re-dates old nights). DST transitions mid-night need no handling beyond formatting via `tz_id`.

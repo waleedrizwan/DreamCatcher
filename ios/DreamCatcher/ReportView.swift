@@ -15,7 +15,7 @@ struct ReportView: View {
     @State private var events: [EventRecord] = []
     @State private var gaps: [GapRecord] = []
     @State private var clips: [ClipRecord] = []
-    @State private var player: AVAudioPlayer?
+    @State private var clipPlayer = ClipPlayer()
 
     var body: some View {
         List {
@@ -240,9 +240,7 @@ struct ReportView: View {
     private func play(_ clip: ClipRecord) {
         let url = deps.clipsRoot.deletingLastPathComponent()
             .appendingPathComponent(clip.fileName)
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
-        player = try? AVAudioPlayer(contentsOf: url)
-        player?.play()
+        try? clipPlayer.play(url: url)
     }
 
     private func percentOfNight(_ s: SessionRecord) -> Int {

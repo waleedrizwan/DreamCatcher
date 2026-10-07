@@ -130,7 +130,7 @@ final class SessionRepositoryTests: XCTestCase {
             ev.peakDbfs = -30
             try repo.recordEvent(sessionId: session.id, ev)
         }
-        // Past the 5-minute keep threshold, so the discard rule does not apply.
+        // Past the 2-minute keep threshold, so the discard rule does not apply.
         try repo.heartbeat(sessionId: session.id, nowMs: t0 + 400_000)
 
         let recovered = try repo.recoverOrphanSessions()
@@ -176,8 +176,8 @@ final class SessionRepositoryTests: XCTestCase {
                        "discarded sessions never appear in history")
     }
 
-    /// Spec §3.1: the under-5-minute rule applies on the crash-recovery path
-    /// too — a night that died at minute two is noise, not a report.
+    /// Spec §3.1: the under-2-minute rule applies on the crash-recovery path
+    /// too — a night that died at 90 seconds is noise, not a report.
     func testCrashRecoveryDiscardsShortSessions() throws {
         let repo = try makeRepo()
         let session = try startSession(repo)
@@ -186,10 +186,10 @@ final class SessionRepositoryTests: XCTestCase {
         ev.maxConf = 0.9
         try repo.recordEvent(sessionId: session.id, ev)
         try repo.heartbeat(sessionId: session.id,
-                           nowMs: session.startedAtMs + 120_000)
+                           nowMs: session.startedAtMs + 90_000)
 
         XCTAssertEqual(try repo.recoverOrphanSessions(), [],
-                       "a 2-minute crashed session is not recovered")
+                       "a 90-second crashed session is not recovered")
         XCTAssertEqual(try repo.fetchSession(id: session.id)?.state, .discarded)
     }
 

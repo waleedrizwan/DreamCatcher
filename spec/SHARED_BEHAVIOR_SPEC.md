@@ -244,7 +244,7 @@ Tables: `session`, `episode`, `event`, `clip`, `gap` — see the DDL for columns
 
 - **Start**: pre-flight (mic permission; ≥ 200 MB free disk or refuse with guidance; charging nudge if unplugged and < 50 %), INSERT `state='recording'`, then start audio.
 - **Normal end**: `flush()` → finalize open episode → rollups → `state='completed'`. Report auto-presents on Stop, and also on next app open if the user stopped without looking.
-- **< 5 min session**: `state='discarded'`; delete its events/episodes/clips and files; toast "Session under 5 minutes — not saved." Never appears in history.
+- **< 2 min session**: `state='discarded'`; delete its events/episodes/clips and files; toast "Session under 2 minutes — not saved." Never appears in history.
 - **Auto-stop at 12 h**: sessions still recording at 12 h are finalized with `end_reason='auto_stopped'`; report shows an "Ended automatically" banner. (Forgot-to-stop protection: daytime TV must not become "snoring".)
 - **Crash / battery death / permission revoked mid-night** (permission revocation kills the process — it IS the crash path): on next launch, any `state='recording'` row with a stale heartbeat is recovered: `ended_at_ms = max(last_heartbeat_ms, max(event.end_ms))`; orphan events (`episode_id` NULL) are re-merged by an offline replay of §1's merge/confirm rules (same parameters, deterministic, fixture-tested); rollups computed; `state='recovered'`. Report banner: "Recording ended unexpectedly at HH:MM". Already-written clips are kept.
 - **Storage-full mid-night**: clip-write failure → stop writing clips, keep metrics (silent degrade). DB-write failure → retry in memory; if persistent, finalize gracefully as `recovered`. Never crash-loop.

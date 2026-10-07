@@ -160,7 +160,7 @@ public struct SessionRepository: Sendable {
         }
     }
 
-    /// Sessions under 5 minutes are discarded (spec §3.1): the session row is
+    /// Sessions under 2 minutes are discarded (spec §3.1): the session row is
     /// marked `discarded` and its children are deleted; the caller deletes the
     /// clip files. Discarded sessions never appear in history.
     public func discardSession(sessionId: String) throws {
@@ -177,7 +177,7 @@ public struct SessionRepository: Sendable {
 
     /// Minimum session length worth keeping (spec §3.1) — shared by the normal
     /// stop path and crash recovery.
-    public static let minSessionMs: Int64 = 5 * 60_000
+    public static let minSessionMs: Int64 = 2 * 60_000
 
     /// Crash recovery (spec §3.1): every session still in state 'recording' is
     /// finalized from its persisted rows. Returns the recovered session ids

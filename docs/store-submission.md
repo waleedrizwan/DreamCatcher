@@ -77,8 +77,8 @@ approved wording.
 >
 > To test: open the app, complete the three onboarding screens, grant
 > microphone access, and tap "Start Sleep Session". Play snoring audio near the
-> device (any snoring video works). Sessions under five minutes are discarded
-> by design, so let it run past five minutes before tapping Stop, then confirm
+> device (any snoring video works). Sessions under two minutes are discarded
+> by design, so let it run past two minutes before tapping Stop, then confirm
 > the stop. The night report appears automatically.
 >
 > The medical disclaimer appears in onboarding, on the Home screen, in the

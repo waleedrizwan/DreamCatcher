@@ -67,7 +67,7 @@ public actor RecordingSessionActor {
     private static let maxWriteFailureStreak = 8
 
     public static let maxSessionMs: Int64 = 12 * 3_600_000   // spec §3.1 auto-stop
-    public static let minSessionMs: Int64 = 5 * 60_000       // spec §3.1 discard
+    public static let minSessionMs: Int64 = 2 * 60_000       // spec §3.1 discard
     public static let maxClipsPerNight = 30                  // spec §4
     public static let clipPreRollMs: Int64 = 3_000
     public static let clipLengthMs: Int64 = 12_000

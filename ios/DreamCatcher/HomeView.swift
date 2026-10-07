@@ -194,7 +194,7 @@ struct HomeView: View {
             case .saved(let sessionId):
                 reportSessionId = sessionId
             case .discardedTooShort:
-                startError = "Session under 5 minutes — not saved."
+                startError = "Session under 2 minutes — not saved."
             }
         } catch {
             startError = error.localizedDescription

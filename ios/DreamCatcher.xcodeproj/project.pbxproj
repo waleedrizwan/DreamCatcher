@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0A656128DAFD9883F6E059D2 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9EDA0CE2FBEE8F7D2A155E9 /* HistoryView.swift */; };
+		2975C4EBB121B0825CEB5379 /* ClipPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B073E9A18D84B539E58700 /* ClipPlayer.swift */; };
 		2CDA595851107E90B6481C1B /* DreamCatcherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C4CC5643812B427846013B /* DreamCatcherApp.swift */; };
 		2D2414A1B4EDCAA0D508D18F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A4C7272BF493D1DFDC480F52 /* Assets.xcassets */; };
 		47D7CB4FC2946BAB93E308CE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 63DF775812E99FDDC5A07B8C /* PrivacyInfo.xcprivacy */; };
@@ -25,6 +26,7 @@
 		03A80BB04932E86E253E24D9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		04D0031BFBA12A3C0F9A8386 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		4350E8C67274544C19012079 /* SnoreStorage */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SnoreStorage; path = Packages/SnoreStorage; sourceTree = SOURCE_ROOT; };
+		43B073E9A18D84B539E58700 /* ClipPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipPlayer.swift; sourceTree = "<group>"; };
 		49EA566F7C8B05D38FE9865E /* SnoreCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SnoreCore; path = Packages/SnoreCore; sourceTree = SOURCE_ROOT; };
 		593AEFB704CCF20AA9293726 /* BedtimeReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BedtimeReminder.swift; sourceTree = "<group>"; };
 		63DF775812E99FDDC5A07B8C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -84,6 +86,7 @@
 			children = (
 				A4C7272BF493D1DFDC480F52 /* Assets.xcassets */,
 				593AEFB704CCF20AA9293726 /* BedtimeReminder.swift */,
+				43B073E9A18D84B539E58700 /* ClipPlayer.swift */,
 				D8C4CC5643812B427846013B /* DreamCatcherApp.swift */,
 				C9EDA0CE2FBEE8F7D2A155E9 /* HistoryView.swift */,
 				04D0031BFBA12A3C0F9A8386 /* HomeView.swift */,
@@ -178,6 +181,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				51E3503076B54011E4010939 /* BedtimeReminder.swift in Sources */,
+				2975C4EBB121B0825CEB5379 /* ClipPlayer.swift in Sources */,
 				2CDA595851107E90B6481C1B /* DreamCatcherApp.swift in Sources */,
 				0A656128DAFD9883F6E059D2 /* HistoryView.swift in Sources */,
 				A96C28425F7CB7DD9629A796 /* HomeView.swift in Sources */,
@@ -197,7 +201,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = CCY6PYVHZW;
 				INFOPLIST_FILE = DreamCatcher/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -282,7 +286,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = CCY6PYVHZW;
 				INFOPLIST_FILE = DreamCatcher/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

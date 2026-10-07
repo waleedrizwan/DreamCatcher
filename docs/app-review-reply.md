@@ -20,7 +20,7 @@ Most people never hear their own snoring. Dream Catcher lets them find out witho
 - No login or demo account is needed.
 - Open the app, go through the three onboarding screens, and allow microphone access.
 - Tap "Start Sleep Session". Play snoring audio near the phone (any snoring video on another device works).
-- Sessions shorter than 5 minutes are thrown away by design, so let it run for more than 5 minutes. Then tap Stop and confirm "End session".
+- Sessions shorter than 2 minutes are thrown away by design, so let it run for more than 2 minutes. Then tap Stop and confirm "End session".
 - The night report opens automatically. Tap a clip to play it.
 - The History tab has the calendar and trends. Settings has sensitivity (Low/Medium/High), a bedtime reminder, and "Delete all data".
 - The app keeps recording while the screen is locked, which is why it declares the `audio` background mode. Recording overnight with the screen locked is the app's only job.
