@@ -240,7 +240,7 @@ struct ReportView: View {
     private func play(_ clip: ClipRecord) {
         let url = deps.clipsRoot.deletingLastPathComponent()
             .appendingPathComponent(clip.fileName)
-        try? clipPlayer.play(url: url)
+        Task { try? await clipPlayer.play(url: url) }
     }
 
     private func percentOfNight(_ s: SessionRecord) -> Int {

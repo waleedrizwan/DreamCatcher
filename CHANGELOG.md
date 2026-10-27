@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Snore clips play with the room's steady background noise (mic hiss, fans) filtered out, so the snoring stands out
+
 ## [1.0.0] - 2026-10-07
 
 First App Store release.
